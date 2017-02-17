@@ -1,0 +1,85 @@
+require 'oauth'
+require 'json'
+
+$consumer_key = ""
+$consumer_secret = ""
+$oauth_token = ""
+$oauth_token_secret = ""
+
+$access_token = nil
+
+def readTokens()
+  f = File.new("tokens.txt", "r")
+  $consumer_key = f.gets().chomp()
+  $consumer_secret = f.gets().chomp()
+  $oauth_token = f.gets().chomp()
+  $oauth_token_secret = f.gets().chomp()
+  f.close
+
+#  puts $consumer_key
+#  puts $consumer_secret
+#  puts $oauth_token
+#  puts $oauth_token_secret
+  
+end
+
+# Exchange your oauth_token and oauth_token_secret for an AccessToken instance.
+def prepare_access_token(oauth_token, oauth_token_secret)
+    consumer = OAuth::Consumer.new($consumer_key, $consumer_secret, { :site => "https://api.twitter.com", :scheme => :header })
+     
+    # now create the access token object from passed values
+    token_hash = { :oauth_token => oauth_token, :oauth_token_secret => oauth_token_secret }
+    $access_token = OAuth::AccessToken.from_hash(consumer, token_hash )
+ 
+end
+
+
+def displayHomeTweets() 
+  # use the access token as an agent to get the home timeline
+  response = $access_token.request(:get, "https://api.twitter.com/1.1/statuses/home_timeline.json")
+
+  puts response
+  #puts response["followers_count"]
+
+  exit
+
+
+  i = 0
+  tweets = JSON.parse(response.body)
+  tweets.map do | tweet |
+    if (i < 10)
+#      puts i.to_s + ": User: " + tweet["user"]["name"] + " " + "Tweet: " + tweet["text"]
+      puts " " + "Tweet: " + tweet["text"]
+    end
+  i += 1
+  end
+end
+
+
+
+def followUser(username) 
+  #Follow user
+#  username = ARGV[0]
+  puts "Follwing #{username}"
+
+  response = $access_token.request(:post, "https://api.twitter.com/1.1/friendships/create.json?screen_name=#{username}&follow=true")
+  puts response
+
+end
+
+
+def main()
+  readTokens()
+ 
+  # Exchange our oauth_token and oauth_token secret for the AccessToken instance.
+  prepare_access_token($oauth_token, $oauth_token_secret)
+
+#  displayHomeTweets() 
+  followUser(ARGV[0]) 
+
+
+
+end
+
+main()
+
