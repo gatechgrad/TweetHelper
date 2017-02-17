@@ -41,9 +41,6 @@ def displayHomeTweets()
   puts response
   #puts response["followers_count"]
 
-  exit
-
-
   i = 0
   tweets = JSON.parse(response.body)
   tweets.map do | tweet |
@@ -74,8 +71,15 @@ def main()
   # Exchange our oauth_token and oauth_token secret for the AccessToken instance.
   prepare_access_token($oauth_token, $oauth_token_secret)
 
-#  displayHomeTweets() 
-  followUser(ARGV[0]) 
+  if (ARGV.count == 0) 
+    puts "Usage: ruby twitter_oauth.rb <command> <options>"
+    puts "Commands: hometweets - list tweets in your timeline"
+    puts "          follow <username> - follows the specified user"
+  elsif (ARGV[0].upcase == "HOMETWEETS") 
+    displayHomeTweets() 
+  elsif (ARGV[0].upcase == "FOLLOW") 
+    followUser(ARGV[1]) 
+  end
 
 
 

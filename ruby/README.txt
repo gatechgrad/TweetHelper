@@ -1,5 +1,7 @@
 2017 Levi D. Smith
 
+WARNING:  Mass following Twitter accounts can supposedly get your Twitter account banned.  Use with caution and only if you know what you're doing!
+
 Create text file called tokens.txt and put in the following values on separate lines:
 
 consumer_key
