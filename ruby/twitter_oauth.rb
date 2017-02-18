@@ -87,10 +87,20 @@ def followGoodList()
   FileUtils.mv('goodlist.txt', strArchiveFile) 
 end
 
+def makeGoodList()
+  f = File.new("goodlist.txt", "w")
+  f.puts("Hello")
+  f.puts("World")
+  f.close()
+
+end
+
 def displayUsage() 
     puts "Usage: ruby twitter_oauth.rb <command> <options>"
     puts "Commands: hometweets - list tweets in your timeline"
     puts "          follow <username> - follows the specified user"
+    puts "          followgoodlist  - follows everyone in the goodlist.txt file"
+    puts "          makegoodlist <username>  - creates goodlist.txt file using followers of the specified user"
 
 end
 
@@ -109,6 +119,8 @@ def main()
     followUser(ARGV[1]) 
   elsif (ARGV[0].upcase == "FOLLOWGOODLIST") 
     followGoodList()
+  elsif (ARGV[0].upcase == "MAKEGOODLIST") 
+    makeGoodList()
   else 
     puts "Invalid option"
     displayUsage()
