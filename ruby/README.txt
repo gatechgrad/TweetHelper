@@ -10,3 +10,8 @@ oauth_token
 oauth_token_secret
 
 I did this to keep me from checking in source code with these keys.  Put ruby/tokens.txt in the .gitignore file.
+
+If you see something like below followed by a stack trace, the Consumer Key or Consumer Secret values are wrong.  You get these from https://dev.twitter.com > My apps > select app > Keys and Access Tokens tab.
+#<Net::HTTPUnauthorized:0x007fa6078811c0>
+twitter_oauth.rb:50:in `[]': no implicit conversion of String into Integer (TypeError)
+

@@ -1,5 +1,6 @@
 require 'oauth'
 require 'json'
+require 'fileutils'
 
 $consumer_key = ""
 $consumer_secret = ""
@@ -64,6 +65,35 @@ def followUser(username)
 
 end
 
+def followGoodList()
+  arrayGoodList = Array.new()
+  File.open("goodlist.txt").each do |line|
+    arrayGoodList << line.chomp()
+  end
+
+  arrayGoodList.each { |username|
+
+    puts "Follwing #{username}"
+
+    response = $access_token.request(:post, "https://api.twitter.com/1.1/friendships/create.json?screen_name=#{username}&follow=true")
+    puts response
+    iSleep = 30 + rand(30)
+    puts "Sleeping for #{iSleep} seconds"
+    sleep(iSleep)
+  }
+
+  strArchiveFile = "goodlist" + Time.now.strftime("%Y%m%d_%H%M%S") + ".txt"
+  puts "Moving goodlist.txt to #{strArchiveFile}"
+  FileUtils.mv('goodlist.txt', strArchiveFile) 
+end
+
+def displayUsage() 
+    puts "Usage: ruby twitter_oauth.rb <command> <options>"
+    puts "Commands: hometweets - list tweets in your timeline"
+    puts "          follow <username> - follows the specified user"
+
+end
+
 
 def main()
   readTokens()
@@ -72,13 +102,16 @@ def main()
   prepare_access_token($oauth_token, $oauth_token_secret)
 
   if (ARGV.count == 0) 
-    puts "Usage: ruby twitter_oauth.rb <command> <options>"
-    puts "Commands: hometweets - list tweets in your timeline"
-    puts "          follow <username> - follows the specified user"
+    displayUsage()
   elsif (ARGV[0].upcase == "HOMETWEETS") 
     displayHomeTweets() 
   elsif (ARGV[0].upcase == "FOLLOW") 
     followUser(ARGV[1]) 
+  elsif (ARGV[0].upcase == "FOLLOWGOODLIST") 
+    followGoodList()
+  else 
+    puts "Invalid option"
+    displayUsage()
   end
 
 
