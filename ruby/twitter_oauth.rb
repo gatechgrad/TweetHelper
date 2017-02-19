@@ -109,6 +109,10 @@ def makeGoodList(username)
   puts users["ids"]
   users["ids"].each do |id|
     puts "ID: #{id}"
+
+#  response1 = $access_token.request(:get, "https://api.twitter.com/1.1/followers/ids.json?cursor=-1&screen_name=#{username}&count=200")
+
+
     f.puts "#{id}"
   end
 
@@ -121,6 +125,61 @@ def makeGoodList(username)
 
   f.close()
 
+end
+
+def displayUserID(username)
+    response = $access_token.request(:get, "https://api.twitter.com/1.1/users/lookup.json?screen_name=#{username}")
+    user = JSON.parse(response.body)
+#    puts user
+    uid = ""
+    uid = user[0]["id"]
+
+    user[0].map do |k, v|
+      puts "Key: #{k} Value: #{v}"
+    end
+    puts "ID: #{uid}"
+
+end
+
+def isGoodPerson(user_id) 
+  isGood = TRUE
+  response = $access_token.request(:get, "https://api.twitter.com/1.1/users/lookup.json?user_id=#{user_id}")
+  user = JSON.parse(response.body)
+
+  u_followers = user[0]["followers_count"]
+  puts "Followers: #{u_followers}"
+  
+  u_following = user[0]["friends_count"]
+  puts "Following: #{u_following}"
+
+  if (u_following > 0)
+    u_following_ratio = (u_followers.to_f / u_following.to_f * 100.to_f).to_i
+    puts "Follow ratio: #{u_following_ratio}"
+  end
+
+#  u_is_following = user[0][following]
+#  puts "Is following: #{u_is_following}"
+
+  u_last_action = user[0]["status"]["created_at"]
+  puts "Last action: #{u_last_action}"
+
+  if (u_followers > 100 && u_following_ratio < 200)
+    isGood = TRUE
+  else
+    isGood = FALSE
+  end 
+
+  if (isGood)
+    response1 = $access_token.request(:get, "https://api.twitter.com/1.1/friendships/lookup.json?user_id=#{user_id}")
+    connections = JSON.parse(response.body)
+#    connections[0]["connections"].each { |value|
+#      puts "Value: #{value}"
+#    } 
+    
+
+  end
+  
+  return isGood 
 end
 
 def followGoodListByID()
@@ -145,6 +204,55 @@ def followGoodListByID()
   FileUtils.mv('goodlist.txt', strArchiveFile) 
 end
 
+def showRateLimit()
+  # use the access token as an agent to get the home timeline
+  response = $access_token.request(:get, "https://api.twitter.com/1.1/application/rate_limit_status.json?resources=help,users,search,statuses")
+
+  puts response
+
+  limits = JSON.parse(response.body)
+#  puts limits
+#  limits.map do | limit |
+#    puts "Limit: " + limit[0]  
+#  end
+
+=begin
+#  puts "Limit: #{limits["resources"]}"
+  limits["resources"].map do | limit_category |
+    puts "Category: " + limit_category[0]
+    limit_category.map do |t|
+      puts "t: #{t}"
+    end
+#    limit_category.each { |s|
+#      puts "value : #{s}"
+#    }
+  end
+=end
+
+
+  if FALSE
+#  if TRUE
+    limits["resources"].map do | limit_category |
+      limit_category.map do |t|
+       puts "t: #{t}"
+       puts
+      end
+    end
+  end
+
+#  puts "Lookup - limit: #{limits["resources"]["users"]["/users/lookup"]["limit"]} remaining: #{limits["resources"]["users"]["/users/lookup"]["remaining"]}"
+
+
+  h = limits["resources"]["users"]["/users/lookup"]
+  puts "/users/lookup - limit: #{h["limit"]} remaining: #{h["remaining"]}"
+
+  h = limits["resources"]["statuses"]["/statuses/home_timeline"]
+  puts "/statuses/home_timeline - limit: #{h["limit"]} remaining: #{h["remaining"]}"
+
+  h = limits["resources"]["statuses"]["/statuses/show/:id"]
+  puts "/statuses/show:id - limit: #{h["limit"]} remaining: #{h["remaining"]}"
+  
+end
 
 
 def displayUsage() 
@@ -177,6 +285,12 @@ def main()
       followGoodList()
   elsif (ARGV[0].upcase == "MAKEGOODLIST") 
     makeGoodList(ARGV[1])
+  elsif (ARGV[0].upcase == "RATELIMIT") 
+    showRateLimit() 
+  elsif (ARGV[0].upcase == "GETUSERID") 
+    displayUserID(ARGV[1]) 
+  elsif (ARGV[0].upcase == "ISGOODPERSON") 
+    puts isGoodPerson(ARGV[1]) 
   else 
     puts "Invalid option"
     displayUsage()
