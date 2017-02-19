@@ -1,6 +1,7 @@
 require 'oauth'
 require 'json'
 require 'fileutils'
+require 'date'
 
 $consumer_key = ""
 $consumer_secret = ""
@@ -10,7 +11,11 @@ $oauth_token_secret = ""
 $access_token = nil
 
 SLEEP_MIN = 60
-SLEEP_MAX = 90
+SLEEP_MAX = 70
+
+FOLLOWERS_LIMIT = 50
+FOLLOW_RATIO_LIMIT = 200
+LAST_ACTION_LIMIT = 5
 
 
 def readTokens()
@@ -95,25 +100,49 @@ def makeGoodList(username)
 
   puts "Making goodlist.txt for #{username}"
 
+  #read the checked.txt file into an array
+  arrayChecked = Array.new
+  if File.file?("checked.txt")
+    File.open("checked.txt").each do |line|
+    arrayChecked << line.chomp().to_i
+    end
+  end
+
   # use the access token as an agent to get the home timeline
   response = $access_token.request(:get, "https://api.twitter.com/1.1/followers/ids.json?cursor=-1&screen_name=#{username}&count=200")
 
   puts response
   #puts response["followers_count"]
 
-  f = File.new("goodlist.txt", "w")
+#  f = File.new("goodlist.txt", "w")
+  f = File.open("goodlist.txt", "a+")
 
 #  puts "RESULT: " + JSON.parse(response.body)
   users = JSON.parse(response.body)
 #  puts users["next_cursor"]
   puts users["ids"]
   users["ids"].each do |id|
-    puts "ID: #{id}"
+    if (arrayChecked.include?(id))
+      puts "Skipping #{id} - in checked.txt"
+    else
+      if (isGoodPerson(id))
+        puts "ID: #{id}"
+        f.puts "#{id}"
+      else
+        puts "Skipping #{id} - !isGoodPerson"
+      end
 
-#  response1 = $access_token.request(:get, "https://api.twitter.com/1.1/followers/ids.json?cursor=-1&screen_name=#{username}&count=200")
+#Not in the checked file, so add them
+      fChecked = File.open("checked.txt", "a+")
+      fChecked.puts "#{id}" 
+      fChecked.close
+
+      puts "Sleeping for 61"
+      sleep(61)
+
+    end
 
 
-    f.puts "#{id}"
   end
 
 #  users.map do | user |
@@ -146,8 +175,15 @@ def isGoodPerson(user_id)
   response = $access_token.request(:get, "https://api.twitter.com/1.1/users/lookup.json?user_id=#{user_id}")
   user = JSON.parse(response.body)
 
+
+  u_screen_name = user[0]["screen_name"]
+  puts "Handle: #{u_screen_name}"
+  
   u_followers = user[0]["followers_count"]
   puts "Followers: #{u_followers}"
+  if (u_followers < FOLLOWERS_LIMIT) 
+    puts "Follower Count failed (#{u_followers} < #{FOLLOWERS_LIMIT})"
+  end
   
   u_following = user[0]["friends_count"]
   puts "Following: #{u_following}"
@@ -155,15 +191,38 @@ def isGoodPerson(user_id)
   if (u_following > 0)
     u_following_ratio = (u_followers.to_f / u_following.to_f * 100.to_f).to_i
     puts "Follow ratio: #{u_following_ratio}"
+
+    if (u_following_ratio > FOLLOW_RATIO_LIMIT)
+      puts "Follower Ratio failed (#{u_following_ratio} > #{FOLLOW_RATIO_LIMIT})"
+    end
   end
 
 #  u_is_following = user[0][following]
 #  puts "Is following: #{u_is_following}"
 
-  u_last_action = user[0]["status"]["created_at"]
-  puts "Last action: #{u_last_action}"
+  if (!user[0]["status"].nil?)
+    u_last_action = user[0]["status"]["created_at"]
+#Last action: Sat Dec 03 03:47:58 +0000 2016
+#  lastActionDate = Date.strptime(u_last_action, "%a %b %d %H:%M:%S %z %Y")  
+    lastActionDate = DateTime.strptime(u_last_action, "%a %b %d %H:%M:%S %z %Y")  
+    puts "Last action: #{u_last_action}"
 
-  if (u_followers > 100 && u_following_ratio < 200)
+    todayDate = DateTime.now
+    puts lastActionDate
+    puts todayDate 
+
+    days_since_last_action = (todayDate - lastActionDate).to_i
+    puts "Date: #{lastActionDate} Diff: #{days_since_last_action }"
+
+    if (days_since_last_action > LAST_ACTION_LIMIT)
+      puts "Last action failed (#{days_since_last_action} > #{LAST_ACTION_LIMIT})"
+    end
+
+  else
+    days_since_last_action = 9999
+  end
+
+  if (u_followers > FOLLOWERS_LIMIT && u_following_ratio < FOLLOW_RATIO_LIMIT && days_since_last_action < LAST_ACTION_LIMIT)
     isGood = TRUE
   else
     isGood = FALSE
@@ -171,13 +230,20 @@ def isGoodPerson(user_id)
 
   if (isGood)
     response1 = $access_token.request(:get, "https://api.twitter.com/1.1/friendships/lookup.json?user_id=#{user_id}")
-    connections = JSON.parse(response.body)
-#    connections[0]["connections"].each { |value|
-#      puts "Value: #{value}"
-#    } 
-    
+    connections = JSON.parse(response1.body)
+    puts connections
+    connections[0]["connections"].each { |value|
+      puts "Value: #{value}"
+      if (value == "following" || value == "followed_by")
+        isGood = FALSE
+        puts "Already following"
+      end
+    } 
+      
 
   end
+
+  puts "*** #{u_screen_name} isGoodUser? #{isGood}" 
   
   return isGood 
 end
@@ -188,15 +254,19 @@ def followGoodListByID()
     arrayGoodList << line.chomp()
   end
 
+
+  i = 1
+  iCount = arrayGoodList.count
   arrayGoodList.each { |userid|
 
-    puts "Follwing #{userid}"
+    puts "Follwing #{userid} #{i} of #{iCount}"
 
     response = $access_token.request(:post, "https://api.twitter.com/1.1/friendships/create.json?user_id=#{userid}&follow=true")
     puts response
     iSleep = SLEEP_MIN + rand(SLEEP_MAX - SLEEP_MIN)
     puts "Sleeping for #{iSleep} seconds"
     sleep(iSleep)
+    i += 1
   }
 
   strArchiveFile = "goodlist" + Time.now.strftime("%Y%m%d_%H%M%S") + ".txt"
@@ -206,7 +276,7 @@ end
 
 def showRateLimit()
   # use the access token as an agent to get the home timeline
-  response = $access_token.request(:get, "https://api.twitter.com/1.1/application/rate_limit_status.json?resources=help,users,search,statuses")
+  response = $access_token.request(:get, "https://api.twitter.com/1.1/application/rate_limit_status.json?resources=help,users,search,statuses,friendships,application")
 
   puts response
 
@@ -229,9 +299,8 @@ def showRateLimit()
   end
 =end
 
-
-  if FALSE
-#  if TRUE
+#  if FALSE
+  if TRUE
     limits["resources"].map do | limit_category |
       limit_category.map do |t|
        puts "t: #{t}"
@@ -252,17 +321,29 @@ def showRateLimit()
   h = limits["resources"]["statuses"]["/statuses/show/:id"]
   puts "/statuses/show:id - limit: #{h["limit"]} remaining: #{h["remaining"]}"
   
+  h = limits["resources"]["friendships"]["/friendships/lookup"]
+  puts "/friendships/lookup - limit: #{h["limit"]} remaining: #{h["remaining"]}"
+  
+  h = limits["resources"]["application"]["/application/rate_limit_status"]
+  puts "/application/rate_limit_status - limit: #{h["limit"]} remaining: #{h["remaining"]}"
+  
+#rate limit for "create" aka follow is not accessible
+#  h = limits["resources"]["friendships"]["/friendships/create"]
+#  puts "friendships/create - limit: #{h["limit"]} remaining: #{h["remaining"]}"
+  
+
+  
 end
 
 
 def displayUsage() 
     puts "Usage: ruby twitter_oauth.rb <command> <options>"
-    puts "Commands: hometweets - list tweets in your timeline"
-    puts "          follow <username> - follows the specified user"
-    puts "          followgoodlist    - follows all IDs in goodlist.txt file"
-    puts "          followgoodlistusername  - follows all handles in goodlist.txt file"
-    puts "          makegoodlist <username>  - creates goodlist.txt file using "
-    puts "            followers of the specified user"
+    puts "Commands:" 
+    puts "hometweets - list tweets in your timeline"
+    puts "follow <username> - follows the specified user"
+    puts "followgoodlist    - follows all IDs in goodlist.txt file"
+    puts "followgoodlistusername  - follows all handles in goodlist.txt file"
+    puts "makegoodlist <username>  - creates goodlist.txt file using followers of the specified user"
 
 end
 
@@ -284,13 +365,25 @@ def main()
   elsif (ARGV[0].upcase == "FOLLOWGOODLISTUSERNAME") 
       followGoodList()
   elsif (ARGV[0].upcase == "MAKEGOODLIST") 
-    makeGoodList(ARGV[1])
+    if (ARGV.count == 2)
+      makeGoodList(ARGV[1])
+    else 
+      displayUsage()
+    end
   elsif (ARGV[0].upcase == "RATELIMIT") 
     showRateLimit() 
   elsif (ARGV[0].upcase == "GETUSERID") 
-    displayUserID(ARGV[1]) 
+    if (ARGV.count == 2)
+      displayUserID(ARGV[1]) 
+    else 
+      displayUsage()
+    end
   elsif (ARGV[0].upcase == "ISGOODPERSON") 
-    puts isGoodPerson(ARGV[1]) 
+    if (ARGV.count == 2)
+      puts isGoodPerson(ARGV[1]) 
+    else 
+      displayUsage()
+    end
   else 
     puts "Invalid option"
     displayUsage()
