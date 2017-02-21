@@ -115,7 +115,7 @@ def makeGoodList(username)
   #puts response["followers_count"]
 
 #  f = File.new("goodlist.txt", "w")
-  f = File.open("goodlist.txt", "a+")
+#  f = File.open("goodlist.txt", "a+")
 
 #  puts "RESULT: " + JSON.parse(response.body)
   users = JSON.parse(response.body)
@@ -127,7 +127,9 @@ def makeGoodList(username)
     else
       if (isGoodPerson(id))
         puts "ID: #{id}"
+        f = File.open("goodlist.txt", "a+")
         f.puts "#{id}"
+        f.close
       else
         puts "Skipping #{id} - !isGoodPerson"
       end
@@ -152,7 +154,6 @@ def makeGoodList(username)
 #    puts user['ids']
 #  end
 
-  f.close()
 
 end
 
