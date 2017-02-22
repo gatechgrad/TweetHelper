@@ -17,6 +17,8 @@ FOLLOWERS_LIMIT = 50
 FOLLOW_RATIO_LIMIT = 200
 LAST_ACTION_LIMIT = 5
 
+USERS_PER_CURSOR_PAGE = 5000
+
 
 def readTokens()
   f = File.new("tokens.txt", "r")
@@ -91,12 +93,34 @@ def followGoodList()
     sleep(iSleep)
   }
 
-  strArchiveFile = "goodlist" + Time.now.strftime("%Y%m%d_%H%M%S") + ".txt"
-  puts "Moving goodlist.txt to #{strArchiveFile}"
-  FileUtils.mv('goodlist.txt', strArchiveFile) 
+  archiveGoodList()
+
 end
 
-def makeGoodList(username)
+def archiveGoodList()
+  strArchiveFile = "goodlist" + Time.now.strftime("%Y%m%d_%H%M%S") + ".txt"
+  puts "Moving goodlist.txt to #{strArchiveFile}"
+  if (!File.directory?("./archives"))
+    FileUtils.mkdir "./archives"
+  end
+  FileUtils.mv('goodlist.txt', "./archives/" + strArchiveFile) 
+
+end
+
+def makeGoodListCursor(username)
+  cursor_id = makeGoodList(username, -1)
+  sleep(10)
+
+  while(cursor_id != 0)
+    puts "Making list for cursor page #{cursor_id}"
+    cursor_id = makeGoodList(username, cursor_id)
+    sleep(10)
+  
+  end
+
+end
+
+def makeGoodList(username, cursorID)
 
   puts "Making goodlist.txt for #{username}"
 
@@ -109,7 +133,8 @@ def makeGoodList(username)
   end
 
   # use the access token as an agent to get the home timeline
-  response = $access_token.request(:get, "https://api.twitter.com/1.1/followers/ids.json?cursor=-1&screen_name=#{username}&count=200")
+#  response = $access_token.request(:get, "https://api.twitter.com/1.1/followers/ids.json?cursor=#{cursorID}&screen_name=#{username}&count=200")
+  response = $access_token.request(:get, "https://api.twitter.com/1.1/followers/ids.json?cursor=#{cursorID}&screen_name=#{username}&count=#{USERS_PER_CURSOR_PAGE}")
 
   puts response
   #puts response["followers_count"]
@@ -154,6 +179,8 @@ def makeGoodList(username)
 #    puts user['ids']
 #  end
 
+  puts "next_cursor: #{users["next_cursor"]}"
+  return users["next_cursor"]
 
 end
 
@@ -270,9 +297,10 @@ def followGoodListByID()
     i += 1
   }
 
-  strArchiveFile = "goodlist" + Time.now.strftime("%Y%m%d_%H%M%S") + ".txt"
-  puts "Moving goodlist.txt to #{strArchiveFile}"
-  FileUtils.mv('goodlist.txt', strArchiveFile) 
+#  strArchiveFile = "goodlist" + Time.now.strftime("%Y%m%d_%H%M%S") + ".txt"
+#  puts "Moving goodlist.txt to #{strArchiveFile}"
+#  FileUtils.mv('goodlist.txt', strArchiveFile) 
+   archiveGoodList()
 end
 
 def showRateLimit()
@@ -367,7 +395,7 @@ def main()
       followGoodList()
   elsif (ARGV[0].upcase == "MAKEGOODLIST") 
     if (ARGV.count == 2)
-      makeGoodList(ARGV[1])
+      makeGoodListCursor(ARGV[1])
     else 
       displayUsage()
     end
