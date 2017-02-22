@@ -15,4 +15,5 @@ If you see something like below followed by a stack trace, the Consumer Key or C
 #<Net::HTTPUnauthorized:0x007fa6078811c0>
 twitter_oauth.rb:50:in `[]': no implicit conversion of String into Integer (TypeError)
 
-Tweepi's limits are current 250 follows or unfollows a days.  Users can't be unfollowed for 5 days.  Those are probably good rules to follow to prevent from being suspended.
+Tweepi's limits are currently 250 follows or unfollows a days.  Users can't be unfollowed for 5 days.  Those are probably good rules to follow to prevent from being suspended.
+This program is simply providing the same functionality of Tweepi on a command line interface.  Plus, this script is for free!
