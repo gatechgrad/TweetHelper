@@ -71,7 +71,7 @@ end
 def followUser(username) 
   #Follow user
 #  username = ARGV[0]
-  puts "Follwing #{username}"
+  puts "Following #{username}"
 
   response = $access_token.request(:post, "https://api.twitter.com/1.1/friendships/create.json?screen_name=#{username}&follow=true")
   puts response
@@ -86,7 +86,7 @@ def followGoodList()
 
   arrayGoodList.each { |username|
 
-    puts "Follwing #{username}"
+    puts "Following #{username}"
 
     response = $access_token.request(:post, "https://api.twitter.com/1.1/friendships/create.json?screen_name=#{username}&follow=true")
     puts response
@@ -205,6 +205,13 @@ def isGoodPerson(user_id)
   response = $access_token.request(:get, "https://api.twitter.com/1.1/users/lookup.json?user_id=#{user_id}")
   user = JSON.parse(response.body)
 
+  puts "User: #{user}"
+  puts "user[0]: #{user[0]}"
+  puts "user[""errors""]: #{user["errors"]}"
+  if (!user["errors"].nil?)
+    puts "ERROR getting user #{user_id}"
+    return false
+  end
 
   u_screen_name = user[0]["screen_name"]
   puts "Handle: #{u_screen_name}"
@@ -289,7 +296,7 @@ def followGoodListByID()
   iCount = arrayGoodList.count
   arrayGoodList.each { |userid|
 
-    puts "Follwing #{userid} #{i} of #{iCount}"
+    puts "Following #{userid} #{i} of #{iCount}"
 
     response = $access_token.request(:post, "https://api.twitter.com/1.1/friendships/create.json?user_id=#{userid}&follow=true")
     puts response
