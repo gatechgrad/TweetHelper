@@ -205,10 +205,10 @@ def isGoodPerson(user_id)
   response = $access_token.request(:get, "https://api.twitter.com/1.1/users/lookup.json?user_id=#{user_id}")
   user = JSON.parse(response.body)
 
-  puts "User: #{user}"
-  puts "user[0]: #{user[0]}"
-  puts "user[""errors""]: #{user["errors"]}"
-  if (!user["errors"].nil?)
+#  puts "User: #{user}"
+#  puts "user[0]: #{user[0]}"
+#  puts "user[""errors""]: #{user["errors"]}"
+  if (user.class == Hash && !user["errors"].nil?)
     puts "ERROR getting user #{user_id}"
     return false
   end
