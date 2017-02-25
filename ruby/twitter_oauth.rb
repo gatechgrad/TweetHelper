@@ -323,23 +323,7 @@ def showRateLimit()
   puts response
 
   limits = JSON.parse(response.body)
-#  puts limits
-#  limits.map do | limit |
-#    puts "Limit: " + limit[0]  
-#  end
 
-=begin
-#  puts "Limit: #{limits["resources"]}"
-  limits["resources"].map do | limit_category |
-    puts "Category: " + limit_category[0]
-    limit_category.map do |t|
-      puts "t: #{t}"
-    end
-#    limit_category.each { |s|
-#      puts "value : #{s}"
-#    }
-  end
-=end
 
 #  if FALSE
   if TRUE
@@ -377,6 +361,13 @@ def showRateLimit()
   
 end
 
+def displayGoodListCount()
+  f = File.open("goodlist.txt")
+  puts "Good list count: #{f.count}"
+  f.close()
+
+
+end
 
 def displayUsage() 
     puts "Usage: ruby twitter_oauth.rb <command> <options>"
@@ -385,8 +376,12 @@ def displayUsage()
     puts "follow <username> - follows the specified user"
     puts "followgoodlist    - follows all IDs in goodlist.txt file"
     puts "followgoodlistusername  - follows all handles in goodlist.txt file"
-    puts "makegoodlist <username>  - creates goodlist.txt file using followers of the specified user"
+    puts "makegoodlist <username>  - creates goodlist.txt file of IDs using followers of the specified user"
 
+    puts "ratelimit - display rate limit information"
+    puts "goodlistcount - how many people are in the good list"
+    puts "getuserid <username> - return the ID for the specified handle"
+    puts "isgoodperson <user_id> - returns if the specified user_id is a good person"
 end
 
 
@@ -414,6 +409,8 @@ def main()
     end
   elsif (ARGV[0].upcase == "RATELIMIT") 
     showRateLimit() 
+  elsif (ARGV[0].upcase == "GOODLISTCOUNT") 
+    displayGoodListCount() 
   elsif (ARGV[0].upcase == "GETUSERID") 
     if (ARGV.count == 2)
       displayUserID(ARGV[1]) 
