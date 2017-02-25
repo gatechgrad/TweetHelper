@@ -8,6 +8,7 @@ $consumer_secret = ""
 $oauth_token = ""
 $oauth_token_secret = ""
 
+$iSleepInterval = 61
 
 
 $access_token = nil
@@ -166,8 +167,8 @@ def makeGoodList(username, cursorID)
       fChecked.puts "#{id}" 
       fChecked.close
 
-      puts "Sleeping for 61"
-      sleep(61)
+      puts "Sleeping for #{$iSleepInterval}"
+      sleep($iSleepInterval)
 
     end
 
@@ -202,6 +203,8 @@ end
 
 def isGoodPerson(user_id) 
   isGood = TRUE
+  $iSleepInterval = 61
+
   response = $access_token.request(:get, "https://api.twitter.com/1.1/users/lookup.json?user_id=#{user_id}")
   user = JSON.parse(response.body)
 
@@ -263,6 +266,7 @@ def isGoodPerson(user_id)
     isGood = TRUE
   else
     isGood = FALSE
+    $iSleepInterval = 10
   end 
 
   if (isGood)
