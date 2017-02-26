@@ -30,6 +30,7 @@ FOLLOW_RATIO_LIMIT = 200
 LAST_ACTION_LIMIT = 5
 
 USERS_PER_CURSOR_PAGE = 5000
+GOOD_LIST_MAX = 250
 
 
 def readTokens()
@@ -159,6 +160,11 @@ def makeGoodList(username, cursorID)
 #  puts users["next_cursor"]
   puts users["ids"]
   users["ids"].each do |id|
+    if (getGoodListCount() > GOOD_LIST_MAX)
+      puts "Reached Good List Max (#{GOOD_LIST_MAX})"
+      exit
+    end
+
     if (arrayChecked.include?(id))
       puts "Skipping #{id} - in checked.txt"
     else
@@ -370,11 +376,15 @@ def showRateLimit()
   
 end
 
-def displayGoodListCount()
-  f = File.open("goodlist.txt")
-  puts "Good list count: #{f.count}"
-  f.close()
+def getGoodListCount()
+  iCount = -1
 
+  f = File.open("goodlist.txt")
+  iCount = f.count
+  puts "Good list count: #{iCount}"
+  f.close()
+  
+  return iCount 
 
 end
 
@@ -419,7 +429,7 @@ def main()
   elsif (ARGV[0].upcase == "RATELIMIT") 
     showRateLimit() 
   elsif (ARGV[0].upcase == "GOODLISTCOUNT") 
-    displayGoodListCount() 
+    getGoodListCount() 
   elsif (ARGV[0].upcase == "GETUSERID") 
     if (ARGV.count == 2)
       displayUserID(ARGV[1]) 
