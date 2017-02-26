@@ -15,7 +15,9 @@ $consumer_secret = ""
 $oauth_token = ""
 $oauth_token_secret = ""
 
-$iSleepInterval = 61
+LOOKUP_SLEEP_INTERVAL = 61
+REQUEST_SLEEP_INTERVAL = 10
+$iSleepInterval = LOOKUP_SLEEP_INTERVAL
 
 
 $access_token = nil
@@ -119,12 +121,12 @@ end
 
 def makeGoodListCursor(username)
   cursor_id = makeGoodList(username, -1)
-  sleep(10)
+  sleep(REQUEST_SLEEP_INTERVAL)
 
   while(cursor_id != 0)
     puts "Making list for cursor page #{cursor_id}"
     cursor_id = makeGoodList(username, cursor_id)
-    sleep(10)
+    sleep(REQUEST_SLEEP_INTERVAL)
   
   end
 
@@ -210,7 +212,7 @@ end
 
 def isGoodPerson(user_id) 
   isGood = TRUE
-  $iSleepInterval = 61
+  $iSleepInterval = LOOKUP_SLEEP_INTERVAL 
 
   response = $access_token.request(:get, "https://api.twitter.com/1.1/users/lookup.json?user_id=#{user_id}")
   user = JSON.parse(response.body)
@@ -273,7 +275,7 @@ def isGoodPerson(user_id)
     isGood = TRUE
   else
     isGood = FALSE
-    $iSleepInterval = 10
+    $iSleepInterval = REQUEST_SLEEP_INTERVAL 
   end 
 
   if (isGood)
