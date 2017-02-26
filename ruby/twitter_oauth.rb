@@ -1,3 +1,10 @@
+###
+#
+# TwitterOAuth (twitter_oauth.rb)
+# 2017 Levi D. Smith - @GaTechGrad
+#
+###
+
 require 'oauth'
 require 'json'
 require 'fileutils'
