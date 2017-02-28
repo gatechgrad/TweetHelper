@@ -32,6 +32,7 @@ LAST_ACTION_LIMIT = 5
 USERS_PER_CURSOR_PAGE = 5000
 GOOD_LIST_MAX = 250
 
+GOODLIST_FILENAME = "goodlist.txt"
 
 def readTokens()
   f = File.new("tokens.txt", "r")
@@ -40,14 +41,9 @@ def readTokens()
   $oauth_token = f.gets().chomp()
   $oauth_token_secret = f.gets().chomp()
   f.close
-
-#  puts $consumer_key
-#  puts $consumer_secret
-#  puts $oauth_token
-#  puts $oauth_token_secret
-  
 end
 
+# Code from Twitter developer examples
 # Exchange your oauth_token and oauth_token_secret for an AccessToken instance.
 def prepare_access_token(oauth_token, oauth_token_secret)
     consumer = OAuth::Consumer.new($consumer_key, $consumer_secret, { :site => "https://api.twitter.com", :scheme => :header })
@@ -81,7 +77,6 @@ end
 
 def followUser(username) 
   #Follow user
-#  username = ARGV[0]
   puts "Following #{username}"
 
   response = $access_token.request(:post, "https://api.twitter.com/1.1/friendships/create.json?screen_name=#{username}&follow=true")
@@ -91,7 +86,7 @@ end
 
 def followGoodList()
   arrayGoodList = Array.new()
-  File.open("goodlist.txt").each do |line|
+  File.open(GOODLIST_FILENAME).each do |line|
     arrayGoodList << line.chomp()
   end
 
@@ -111,12 +106,12 @@ def followGoodList()
 end
 
 def archiveGoodList()
-  strArchiveFile = "goodlist" + Time.now.strftime("%Y%m%d_%H%M%S") + ".txt"
-  puts "Moving goodlist.txt to #{strArchiveFile}"
+  strArchiveFile = "#{GOODLIST_FILENAME}" + Time.now.strftime("%Y%m%d_%H%M%S") + ".txt"
+  puts "Moving #{GOODLIST_FILENAME} to #{strArchiveFile}"
   if (!File.directory?("./archives"))
     FileUtils.mkdir "./archives"
   end
-  FileUtils.mv('goodlist.txt', "./archives/" + strArchiveFile) 
+  FileUtils.mv(GOODLIST_FILENAME, "./archives/" + strArchiveFile) 
 
 end
 
@@ -135,7 +130,7 @@ end
 
 def makeGoodList(username, cursorID)
 
-  puts "Making goodlist.txt for #{username}"
+  puts "Making #{GOODLIST_FILENAME} for #{username}"
 
   #read the checked.txt file into an array
   arrayChecked = Array.new
@@ -146,21 +141,18 @@ def makeGoodList(username, cursorID)
   end
 
   # use the access token as an agent to get the home timeline
-#  response = $access_token.request(:get, "https://api.twitter.com/1.1/followers/ids.json?cursor=#{cursorID}&screen_name=#{username}&count=200")
   response = $access_token.request(:get, "https://api.twitter.com/1.1/followers/ids.json?cursor=#{cursorID}&screen_name=#{username}&count=#{USERS_PER_CURSOR_PAGE}")
 
   puts response
   #puts response["followers_count"]
 
-#  f = File.new("goodlist.txt", "w")
-#  f = File.open("goodlist.txt", "a+")
 
 #  puts "RESULT: " + JSON.parse(response.body)
   users = JSON.parse(response.body)
 #  puts users["next_cursor"]
   puts users["ids"]
   users["ids"].each do |id|
-    if (getGoodListCount() > GOOD_LIST_MAX)
+    if (getGoodListCount() >= GOOD_LIST_MAX)
       puts "Reached Good List Max (#{GOOD_LIST_MAX})"
       exit
     end
@@ -170,7 +162,7 @@ def makeGoodList(username, cursorID)
     else
       if (isGoodPerson(id))
         puts "ID: #{id}"
-        f = File.open("goodlist.txt", "a+")
+        f = File.open(GOODLIST_FILENAME, "a+")
         f.puts "#{id}"
         f.close
       else
@@ -190,12 +182,6 @@ def makeGoodList(username, cursorID)
 
   end
 
-#  users.map do | user |
-#       puts "#{i}: " + user["id"]
-#      puts " " + "User: " + user["screen_name"]
-#    puts user
-#    puts user['ids']
-#  end
 
   puts "next_cursor: #{users["next_cursor"]}"
   return users["next_cursor"]
@@ -223,9 +209,6 @@ def isGoodPerson(user_id)
   response = $access_token.request(:get, "https://api.twitter.com/1.1/users/lookup.json?user_id=#{user_id}")
   user = JSON.parse(response.body)
 
-#  puts "User: #{user}"
-#  puts "user[0]: #{user[0]}"
-#  puts "user[""errors""]: #{user["errors"]}"
   if (user.class == Hash && !user["errors"].nil?)
     puts "ERROR getting user #{user_id}"
     return false
@@ -252,13 +235,9 @@ def isGoodPerson(user_id)
     end
   end
 
-#  u_is_following = user[0][following]
-#  puts "Is following: #{u_is_following}"
 
   if (!user[0]["status"].nil?)
     u_last_action = user[0]["status"]["created_at"]
-#Last action: Sat Dec 03 03:47:58 +0000 2016
-#  lastActionDate = Date.strptime(u_last_action, "%a %b %d %H:%M:%S %z %Y")  
     lastActionDate = DateTime.strptime(u_last_action, "%a %b %d %H:%M:%S %z %Y")  
     puts "Last action: #{u_last_action}"
 
@@ -306,7 +285,7 @@ end
 
 def followGoodListByID()
   arrayGoodList = Array.new()
-  File.open("goodlist.txt").each do |line|
+  File.open(GOODLIST_FILENAME).each do |line|
     arrayGoodList << line.chomp()
   end
 
@@ -325,9 +304,6 @@ def followGoodListByID()
     i += 1
   }
 
-#  strArchiveFile = "goodlist" + Time.now.strftime("%Y%m%d_%H%M%S") + ".txt"
-#  puts "Moving goodlist.txt to #{strArchiveFile}"
-#  FileUtils.mv('goodlist.txt', strArchiveFile) 
    archiveGoodList()
 end
 
@@ -368,9 +344,6 @@ def showRateLimit()
   h = limits["resources"]["application"]["/application/rate_limit_status"]
   puts "/application/rate_limit_status - limit: #{h["limit"]} remaining: #{h["remaining"]}"
   
-#rate limit for "create" aka follow is not accessible
-#  h = limits["resources"]["friendships"]["/friendships/create"]
-#  puts "friendships/create - limit: #{h["limit"]} remaining: #{h["remaining"]}"
   
 
   
@@ -379,10 +352,12 @@ end
 def getGoodListCount()
   iCount = -1
 
-  f = File.open("goodlist.txt")
-  iCount = f.count
-  puts "Good list count: #{iCount}"
-  f.close()
+  if (File.exist?(GOODLIST_FILENAME))
+    f = File.open(GOODLIST_FILENAME)
+    iCount = f.count
+    puts "Good list count: #{iCount}"
+    f.close()
+  end
   
   return iCount 
 
@@ -393,9 +368,9 @@ def displayUsage()
     puts "Commands:" 
     puts "hometweets - list tweets in your timeline"
     puts "follow <username> - follows the specified user"
-    puts "followgoodlist    - follows all IDs in goodlist.txt file"
-    puts "followgoodlistusername  - follows all handles in goodlist.txt file"
-    puts "makegoodlist <username>  - creates goodlist.txt file of IDs using followers of the specified user"
+    puts "followgoodlist    - follows all IDs in #{GOODLIST_FILENAME} file"
+    puts "followgoodlistusername  - follows all handles in #{GOODLIST_FILENAME} file"
+    puts "makegoodlist <username>  - creates #{GOODLIST_FILENAME} file of IDs using followers of the specified user"
 
     puts "ratelimit - display rate limit information"
     puts "goodlistcount - how many people are in the good list"
@@ -407,7 +382,6 @@ end
 def main()
   readTokens()
  
-  # Exchange our oauth_token and oauth_token secret for the AccessToken instance.
   prepare_access_token($oauth_token, $oauth_token_secret)
 
   if (ARGV.count == 0) 
