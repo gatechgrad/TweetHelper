@@ -33,6 +33,7 @@ USERS_PER_CURSOR_PAGE = 5000
 GOOD_LIST_MAX = 250
 
 GOODLIST_FILENAME = "goodlist.txt"
+PURGELIST_FILENAME = "purgelist.txt"
 
 def readTokens()
   f = File.new("tokens.txt", "r")
@@ -105,6 +106,27 @@ def followGoodList()
 
 end
 
+def unfollowPurgeList()
+  arrayPurgeList = Array.new()
+  File.open(PURGELIST_FILENAME).each do |line|
+    arrayPurgeList << line.chomp()
+  end
+
+  arrayPurgeList.each { |user_id|
+
+    puts "Unfollowing #{user_id}"
+
+    response = $access_token.request(:post, "https://api.twitter.com/1.1/friendships/destroy.json?user_id=#{user_id}")
+    puts response
+    iSleep = SLEEP_MIN + rand(SLEEP_MAX - SLEEP_MIN)
+    puts "Sleeping for #{iSleep} seconds"
+    sleep(iSleep)
+  }
+
+  archivePurgeList()
+
+end
+
 def archiveGoodList()
   strArchiveFile = "#{GOODLIST_FILENAME}" + Time.now.strftime("%Y%m%d_%H%M%S") + ".txt"
   puts "Moving #{GOODLIST_FILENAME} to #{strArchiveFile}"
@@ -112,6 +134,16 @@ def archiveGoodList()
     FileUtils.mkdir "./archives"
   end
   FileUtils.mv(GOODLIST_FILENAME, "./archives/" + strArchiveFile) 
+
+end
+
+def archivePurgeList()
+  strArchiveFile = "purgelist" + Time.now.strftime("%Y%m%d_%H%M%S") + ".txt"
+  puts "Moving #{PURGELIST_FILENAME} to #{strArchiveFile}"
+  if (!File.directory?("./archives"))
+    FileUtils.mkdir "./archives"
+  end
+  FileUtils.mv(PURGELIST_FILENAME, "./archives/" + strArchiveFile) 
 
 end
 
@@ -199,6 +231,20 @@ def displayUserID(username)
       puts "Key: #{k} Value: #{v}"
     end
     puts "ID: #{uid}"
+
+end
+
+def displayUsername(user_id)
+    response = $access_token.request(:get, "https://api.twitter.com/1.1/users/lookup.json?user_id=#{user_id}")
+    user = JSON.parse(response.body)
+    username = ""
+    username = user[0]["screen_name"]
+
+    user[0].map do |k, v|
+      puts "Key: #{k} Value: #{v}"
+    end
+
+    puts "username: #{username}"
 
 end
 
@@ -363,6 +409,76 @@ def getGoodListCount()
 
 end
 
+def makePurgeList(strFile) 
+  if (File.exist?(strFile))
+
+    f = File.open(strFile)
+    f.each do |line|
+       $iSleepInterval = LOOKUP_SLEEP_INTERVAL 
+      user_id = line.chomp()
+#      puts "checkPurge #{user_id}"
+      if (checkPurge(user_id))
+        fPurge = File.open(PURGELIST_FILENAME, "a+")
+        fPurge.puts "#{user_id}" 
+        fPurge.close()
+      end
+    
+      sleep($iSleepInterval)
+    end
+    f.close()
+  end
+
+  
+  if (!File.directory?("./archives"))
+    FileUtils.mkdir "./archives"
+  end
+  strArchiveFile = "#{archive}" + Time.now.strftime("%Y%m%d_%H%M%S") + ".txt"
+  FileUtils.mv(strFile, "./archives/" + strArchiveFile) 
+
+end
+
+def checkPurge(user_id) 
+  isFollowedBy = FALSE
+  isFollowing = FALSE
+
+  response = $access_token.request(:get, "https://api.twitter.com/1.1/users/lookup.json?user_id=#{user_id}")
+  user = JSON.parse(response.body)
+
+  if (user.class == Hash && !user["errors"].nil?)
+    puts "ERROR getting user #{user_id}"
+    return false
+  end
+
+  u_screen_name = user[0]["screen_name"]
+  puts "Handle: #{u_screen_name}"
+  
+  response1 = $access_token.request(:get, "https://api.twitter.com/1.1/friendships/lookup.json?user_id=#{user_id}")
+  connections = JSON.parse(response1.body)
+  puts connections
+  connections[0]["connections"].each { |value|
+#    puts "Value: #{value}"
+    if (value == "followed_by")
+      isFollowedBy = TRUE 
+      puts "IS followed_by"
+    elsif (value == "following")
+      isFollowing = TRUE 
+      puts "IS following"
+    end
+  } 
+  
+  purgeUser = false
+  if (!isFollowedBy && isFollowing) 
+    purgeUser = true
+  end
+  return purgeUser
+end
+
+def displayUserURLByID(user_id)
+    puts "https://twitter.com/intent/user?user_id=#{user_id}"
+
+end
+
+
 def displayUsage() 
     puts "Usage: ruby twitter_oauth.rb <command> <options>"
     puts "Commands:" 
@@ -375,7 +491,10 @@ def displayUsage()
     puts "ratelimit - display rate limit information"
     puts "goodlistcount - how many people are in the good list"
     puts "getuserid <username> - return the ID for the specified handle"
+    puts "getusername <user_id> - return the username for the specified ID"
     puts "isgoodperson <user_id> - returns if the specified user_id is a good person"
+    puts "unfollowpurgelist - unfollows all IDs in #{PURGELIST_FILENAME} file"
+    puts "userurl <user_id> - displays the Twitter URL for the specified user_id"
 end
 
 
@@ -410,9 +529,25 @@ def main()
     else 
       displayUsage()
     end
+  elsif (ARGV[0].upcase == "GETUSERNAME") 
+    if (ARGV.count == 2)
+      displayUsername(ARGV[1]) 
+    else 
+      displayUsage()
+    end
   elsif (ARGV[0].upcase == "ISGOODPERSON") 
     if (ARGV.count == 2)
       puts isGoodPerson(ARGV[1]) 
+    else 
+      displayUsage()
+    end
+  elsif (ARGV[0].upcase == "MAKEPURGELIST") 
+      puts makePurgeList(ARGV[1]) 
+  elsif (ARGV[0].upcase == "UNFOLLOWPURGELIST") 
+      unfollowPurgeList()
+  elsif (ARGV[0].upcase == "USERURL") 
+    if (ARGV.count == 2)
+      puts displayUserURLByID(ARGV[1]) 
     else 
       displayUsage()
     end
