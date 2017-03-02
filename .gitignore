@@ -3,3 +3,5 @@ ruby/goodlist*.txt
 ruby/test
 ruby/checked.txt
 ruby/archives/*
+ruby/purgelist.txt
+ruby/whitelist.txt
