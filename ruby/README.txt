@@ -17,3 +17,11 @@ twitter_oauth.rb:50:in `[]': no implicit conversion of String into Integer (Type
 
 Tweepi's limits are currently 250 follows or unfollows a day.  Users can't be unfollowed for 5 days.  Those are probably good rules to follow to prevent from being suspended.
 This program is simply providing the same functionality of Tweepi on a command line interface.  Plus, this script can be downloaded for free!
+
+Typical usage:
+#Follow everyone who is following @GeorgiaTech
+ruby twitter_oauth.rb makegoodlist GeorgiaTech
+ruby twitter_oauth.rb followgoodlist
+#Five days later, remove everyone who didn't follow back (replace DATE with the date of the archived file)
+ruby twitter_oauth.rb makepurgelist archives/goodlist<DATE>.txt
+ruby twitter_oauth.rb unfollowpurgelist
