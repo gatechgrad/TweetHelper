@@ -34,6 +34,7 @@ GOOD_LIST_MAX = 250
 
 GOODLIST_FILENAME = "goodlist.txt"
 PURGELIST_FILENAME = "purgelist.txt"
+WHITELIST_FILENAME = "whitelist.txt"
 
 def readTokens()
   f = File.new("tokens.txt", "r")
@@ -412,30 +413,89 @@ end
 def makePurgeList(strFile) 
   if (File.exist?(strFile))
 
+    contentsArray = Array.new()
     f = File.open(strFile)
-    f.each do |line|
-       $iSleepInterval = LOOKUP_SLEEP_INTERVAL 
+    f.each_line {|line|
+      contentsArray << line.chomp()
+    }
+    f.close()
+
+    user_ids = ""
+    puts "contentsArray: #{contentsArray.size()}"
+
+    contentsArray.each_with_index do |line, index|
+      puts "line: #{line}"
+      $iSleepInterval = LOOKUP_SLEEP_INTERVAL 
       user_id = line.chomp()
-#      puts "checkPurge #{user_id}"
-      if (checkPurge(user_id))
-        fPurge = File.open(PURGELIST_FILENAME, "a+")
-        fPurge.puts "#{user_id}" 
-        fPurge.close()
+      if (index % 100 > 0)
+        user_ids += ","
+      end
+      user_ids += user_id
+
+      if (index % 100 == 99 || index == contentsArray.size - 1)
+        puts "checkPurgeList: #{user_ids}"
+        puts "Count: #{user_ids.split(',').count}"
+        checkPurgeList(user_ids)
+#        iCount = 0
+        user_ids = ""
+        sleep(1)
+        
       end
     
-      sleep($iSleepInterval)
     end
-    f.close()
   end
 
   
   if (!File.directory?("./archives"))
     FileUtils.mkdir "./archives"
   end
-  strArchiveFile = "#{archive}" + Time.now.strftime("%Y%m%d_%H%M%S") + ".txt"
+  strArchiveFile = "goodlistpurged" + Time.now.strftime("%Y%m%d_%H%M%S") + ".txt"
   FileUtils.mv(strFile, "./archives/" + strArchiveFile) 
 
 end
+
+def checkPurgeList(user_ids) 
+    whiteListArray = Array.new()
+    f = File.open(WHITELIST_FILENAME)
+    f.each_line {|line|
+      whiteListArray << line.upcase().chomp()
+    }
+    f.close()
+
+  
+  response1 = $access_token.request(:get, "https://api.twitter.com/1.1/friendships/lookup.json?user_id=#{user_ids}")
+  users = JSON.parse(response1.body)
+  puts users 
+  users.each { |connection|
+    isFollowedBy = FALSE
+    isFollowing = FALSE
+    puts "screen_name: " + connection["screen_name"]
+    
+    if (!whiteListArray.include?(connection["screen_name"].upcase()))
+      connection["connections"].each { |value|
+        if (value == "followed_by")
+          isFollowedBy = TRUE 
+#          puts "IS followed_by"
+        elsif (value == "following")
+          isFollowing = TRUE 
+#          puts "IS following"
+        end
+      }
+      if (!isFollowedBy && isFollowing) 
+        puts "PURGE"
+        f = File.open(PURGELIST_FILENAME, "a+")
+        f.puts connection["id"]
+        f.close
+      else
+        puts "OK"
+      end
+    else
+      puts "WHITELISTED"
+    end
+  } 
+  
+end
+
 
 def checkPurge(user_id) 
   isFollowedBy = FALSE
@@ -473,6 +533,8 @@ def checkPurge(user_id)
   return purgeUser
 end
 
+
+
 def displayUserURLByID(user_id)
     puts "https://twitter.com/intent/user?user_id=#{user_id}"
 
@@ -493,6 +555,7 @@ def displayUsage()
     puts "getuserid <username> - return the ID for the specified handle"
     puts "getusername <user_id> - return the username for the specified ID"
     puts "isgoodperson <user_id> - returns if the specified user_id is a good person"
+    puts "makepurgelist <filename>  - creates #{PURGELIST_FILENAME} file of IDs of users who do not follow back and not in #{WHITELIST_FILENAME}"
     puts "unfollowpurgelist - unfollows all IDs in #{PURGELIST_FILENAME} file"
     puts "userurl <user_id> - displays the Twitter URL for the specified user_id"
 end
