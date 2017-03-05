@@ -141,10 +141,10 @@ end
 def archivePurgeList()
   strArchiveFile = "purgelist" + Time.now.strftime("%Y%m%d_%H%M%S") + ".txt"
   puts "Moving #{PURGELIST_FILENAME} to #{strArchiveFile}"
-  if (!File.directory?("./archives"))
-    FileUtils.mkdir "./archives"
+  if (!File.directory?("./archives/purged"))
+    FileUtils.mkdir "./archives/purged"
   end
-  FileUtils.mv(PURGELIST_FILENAME, "./archives/" + strArchiveFile) 
+  FileUtils.mv(PURGELIST_FILENAME, "./archives/purged/" + strArchiveFile) 
 
 end
 
@@ -446,11 +446,11 @@ def makePurgeList(strFile)
   end
 
   
-  if (!File.directory?("./archives"))
-    FileUtils.mkdir "./archives"
+  if (!File.directory?("./archives/purged"))
+    FileUtils.mkdir "./archives/purged"
   end
   strArchiveFile = "goodlistpurged" + Time.now.strftime("%Y%m%d_%H%M%S") + ".txt"
-  FileUtils.mv(strFile, "./archives/" + strArchiveFile) 
+  FileUtils.mv(strFile, "./archives/purged/" + strArchiveFile) 
 
 end
 
