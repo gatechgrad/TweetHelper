@@ -30,9 +30,12 @@ FOLLOW_RATIO_LIMIT = 200
 LAST_ACTION_LIMIT = 5
 
 USERS_PER_CURSOR_PAGE = 5000
-GOOD_LIST_MAX = 250
+GOOD_LIST_MAX = 500 
+FOLLOW_LIST_MAX = 250 
+USERS_PER_FRIEND_QUERY = 100 
 
 GOODLIST_FILENAME = "goodlist.txt"
+FOLLOWLIST_FILENAME = "followlist.txt"
 PURGELIST_FILENAME = "purgelist.txt"
 WHITELIST_FILENAME = "whitelist.txt"
 
@@ -86,6 +89,28 @@ def followUser(username)
 
 end
 
+def followFollowList()
+  arrayFollowList = Array.new()
+  File.open(FOLLOWLIST_FILENAME).each do |line|
+    arrayFollowList << line.chomp()
+  end
+
+  arrayFollowList.each { |userid|
+
+    puts "Following #{userid}"
+
+    response = $access_token.request(:post, "https://api.twitter.com/1.1/friendships/create.json?user_id=#{userid}&follow=true")
+    puts response
+    iSleep = 61 
+#    iSleep = SLEEP_MIN + rand(SLEEP_MAX - SLEEP_MIN)
+    puts "Sleeping for #{iSleep} seconds"
+    sleep(iSleep)
+  }
+
+  archiveFollowList()
+
+end
+
 def followGoodList()
   arrayGoodList = Array.new()
   File.open(GOODLIST_FILENAME).each do |line|
@@ -135,6 +160,16 @@ def archiveGoodList()
     FileUtils.mkdir "./archives"
   end
   FileUtils.mv(GOODLIST_FILENAME, "./archives/" + strArchiveFile) 
+
+end
+
+def archiveFollowList()
+  strArchiveFile = "#{FOLLOWLIST_FILENAME}" + Time.now.strftime("%Y%m%d_%H%M%S") + ".txt"
+  puts "Moving #{FOLLOWLIST_FILENAME} to #{strArchiveFile}"
+  if (!File.directory?("./archives"))
+    FileUtils.mkdir "./archives"
+  end
+  FileUtils.mv(FOLLOWLIST_FILENAME, "./archives/" + strArchiveFile) 
 
 end
 
@@ -221,6 +256,53 @@ def makeGoodList(username, cursorID)
 
 end
 
+def makeFollowList()
+  arrUsersList = Array.new 
+
+  i = 0
+  File.open(GOODLIST_FILENAME + ".tmp", "w") do |out_file|
+    File.foreach(GOODLIST_FILENAME) do |line|
+      if (i < USERS_PER_FRIEND_QUERY)
+        arrUsersList << line.chomp()
+      else
+        out_file.puts line 
+      end
+      i += 1
+    end
+  end
+
+  FileUtils.mv(GOODLIST_FILENAME + ".tmp", GOODLIST_FILENAME)
+
+  strUsersList = arrUsersList.map { |str| str }.join(",")
+  puts "Checking: " + strUsersList
+
+
+
+    response1 = $access_token.request(:get, "https://api.twitter.com/1.1/friendships/lookup.json?user_id=#{strUsersList}")
+    connections = JSON.parse(response1.body)
+    puts connections
+
+    connections.each { |connection|
+      doFollow = TRUE
+
+      connection["connections"].each { |value|
+        puts "Value: #{value}"
+        if (value == "following" || value == "followed_by")
+          doFollow = FALSE
+        end
+      }
+
+      if (doFollow)
+        f = File.open(FOLLOWLIST_FILENAME, "a+")
+        f.puts connection["id"]
+        f.close()
+      end
+ 
+    }
+
+
+end
+
 def displayUserID(username)
     response = $access_token.request(:get, "https://api.twitter.com/1.1/users/lookup.json?screen_name=#{username}")
     user = JSON.parse(response.body)
@@ -251,7 +333,7 @@ end
 
 def isGoodPerson(user_id) 
   isGood = TRUE
-  $iSleepInterval = LOOKUP_SLEEP_INTERVAL 
+  $iSleepInterval = 15 * 60 / 900
 
   response = $access_token.request(:get, "https://api.twitter.com/1.1/users/lookup.json?user_id=#{user_id}")
   user = JSON.parse(response.body)
@@ -307,9 +389,10 @@ def isGoodPerson(user_id)
     isGood = TRUE
   else
     isGood = FALSE
-    $iSleepInterval = REQUEST_SLEEP_INTERVAL 
+#    $iSleepInterval = REQUEST_SLEEP_INTERVAL 
   end 
 
+=begin
   if (isGood)
     response1 = $access_token.request(:get, "https://api.twitter.com/1.1/friendships/lookup.json?user_id=#{user_id}")
     connections = JSON.parse(response1.body)
@@ -324,10 +407,27 @@ def isGoodPerson(user_id)
       
 
   end
+=end
 
   puts "*** #{u_screen_name} isGoodUser? #{isGood}" 
   
   return isGood 
+end
+
+def isNotFollowing(user_list)
+    response1 = $access_token.request(:get, "https://api.twitter.com/1.1/friendships/lookup.json?user_id=#{user_id}")
+    connections = JSON.parse(response1.body)
+    puts connections
+    connections[0]["connections"].each { |value|
+      puts "Value: #{value}"
+      if (value == "following" || value == "followed_by")
+        isGood = FALSE
+        puts "Already following"
+      end
+    } 
+      
+
+
 end
 
 def followGoodListByID()
@@ -608,6 +708,10 @@ def main()
       puts makePurgeList(ARGV[1]) 
   elsif (ARGV[0].upcase == "UNFOLLOWPURGELIST") 
       unfollowPurgeList()
+  elsif (ARGV[0].upcase == "MAKEFOLLOWLIST") 
+      makeFollowList()
+  elsif (ARGV[0].upcase == "FOLLOWFOLLOWLIST") 
+      followFollowList()
   elsif (ARGV[0].upcase == "USERURL") 
     if (ARGV.count == 2)
       puts displayUserURLByID(ARGV[1]) 
