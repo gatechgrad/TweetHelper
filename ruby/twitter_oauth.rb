@@ -80,6 +80,45 @@ end
 
 
 
+def deleteDirectMessages() 
+  whiteListArray = Array.new()
+  f = File.open(WHITELIST_FILENAME)
+  f.each_line {|line|
+    whiteListArray << line.upcase().chomp()
+  }
+  f.close()
+
+
+  # use the access token as an agent to get the home timeline
+  response = $access_token.request(:get, "https://api.twitter.com/1.1/direct_messages.json")
+
+  puts response
+
+  i = 0
+  dms = JSON.parse(response.body)
+  dms.each do | dm |
+#    puts "#{i} Message: #{dm}"
+    puts "#{i} screen_name #{dm["sender_screen_name"]}"
+    puts "     text #{dm["text"]}"
+    screen_name = dm["sender_screen_name"]
+    if (whiteListArray.include?(screen_name.upcase()))
+      puts "WHITELISTED, DON'T DELETE"
+    else 
+      id = dm["id"]
+      puts "SPAM, DELETE DM ID #{id}"
+      response1 = $access_token.request(:post, "https://api.twitter.com/1.1/direct_messages/destroy.json?id=#{id}")
+      puts "Sleeping for 61"
+      sleep(61)
+    end
+
+    i += 1
+  end
+
+
+end
+
+
+
 def followUser(username) 
   #Follow user
   puts "Following #{username}"
@@ -491,7 +530,6 @@ def showRateLimit()
   h = limits["resources"]["application"]["/application/rate_limit_status"]
   puts "/application/rate_limit_status - limit: #{h["limit"]} remaining: #{h["remaining"]}"
   
-  
 
   
 end
@@ -718,6 +756,8 @@ def main()
     else 
       displayUsage()
     end
+  elsif (ARGV[0].upcase == "DELETEDMS") 
+      deleteDirectMessages()
   else 
     puts "Invalid option"
     displayUsage()
