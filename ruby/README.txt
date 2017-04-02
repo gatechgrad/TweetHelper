@@ -21,7 +21,9 @@ This program is simply providing the same functionality of Tweepi on a command l
 Typical usage:
 #Follow everyone who is following @GeorgiaTech
 ruby twitter_oauth.rb makegoodlist GeorgiaTech
-ruby twitter_oauth.rb followgoodlist
+ruby twitter_oauth.rb makefollowlist 
+ruby twitter_oauth.rb followfollowlist
+
 #Five days later, remove everyone who didn't follow back (replace DATE with the date of the archived file)
-ruby twitter_oauth.rb makepurgelist archives/goodlist<DATE>.txt
+ruby twitter_oauth.rb makepurgelist archives/followlist<DATE>.txt
 ruby twitter_oauth.rb unfollowpurgelist

@@ -687,6 +687,7 @@ def displayUsage()
     puts "followgoodlist    - follows all IDs in #{GOODLIST_FILENAME} file"
     puts "followgoodlistusername  - follows all handles in #{GOODLIST_FILENAME} file"
     puts "makegoodlist <username>  - creates #{GOODLIST_FILENAME} file of IDs using followers of the specified user"
+    puts "makefollowlist - creates #{FOLLOWLIST_FILENAME} from #{GOODLIST_FILENAME} based on follow status"
 
     puts "ratelimit - display rate limit information"
     puts "goodlistcount - how many people are in the good list"
