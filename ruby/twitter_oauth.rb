@@ -548,7 +548,48 @@ def getGoodListCount()
 
 end
 
+
+def makePurgeListDefault() 
+  strFileNames = Dir.entries("./archives")
+  oldestFileName = nil
+  oldestFileDate = nil
+
+  strFileNames.each { | strFile |
+    if (strFile.start_with?("followlist.txt")) 
+      iStart = "followlist.txt".size
+      iLength = "YYYYMMDD_hhmmss".size 
+      dateFollow = DateTime.strptime(strFile[iStart, iLength], "%Y%m%d_%H%M%S") 
+      puts "File: #{strFile} date: #{dateFollow}"
+
+      if (oldestFileDate.nil? || dateFollow < oldestFileDate )
+        oldestFileDate = dateFollow
+        oldestFileName = strFile 
+      end
+    end
+  }
+
+  if (!oldestFileDate.nil?)
+    todayDate = DateTime.now
+
+    iDaysOld = (todayDate - oldestFileDate).to_i
+    if (iDaysOld > 7)
+      puts "Using: #{oldestFileName}"
+      puts "iDaysOld: #{iDaysOld}"
+      makePurgeList("./archives/" + oldestFileName)
+    else
+      puts "No file to process"
+    end
+  else
+      puts "No file to process"
+
+  end
+
+
+end
+
+
 def makePurgeList(strFile) 
+
   if (File.exist?(strFile))
 
     contentsArray = Array.new()
@@ -696,6 +737,7 @@ def displayUsage()
     puts "isgoodperson <user_id> - returns if the specified user_id is a good person"
     puts "makepurgelist <filename>  - creates #{PURGELIST_FILENAME} file of IDs of users who do not follow back and not in #{WHITELIST_FILENAME}"
     puts "unfollowpurgelist - unfollows all IDs in #{PURGELIST_FILENAME} file"
+    puts "purgeandunfollow - purges from the oldest archive file and unfollows them"
     puts "userurl <user_id> - displays the Twitter URL for the specified user_id"
 end
 
@@ -743,8 +785,16 @@ def main()
     else 
       displayUsage()
     end
+  elsif (ARGV[0].upcase == "PURGEANDUNFOLLOW") 
+      makePurgeListDefault() 
+      unfollowPurgeList()
+
   elsif (ARGV[0].upcase == "MAKEPURGELIST") 
+    if (ARGV.count == 2)
       puts makePurgeList(ARGV[1]) 
+    elsif (ARGV.count == 1)
+      makePurgeListDefault() 
+    end
   elsif (ARGV[0].upcase == "UNFOLLOWPURGELIST") 
       unfollowPurgeList()
   elsif (ARGV[0].upcase == "MAKEFOLLOWLIST") 
