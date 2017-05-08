@@ -172,23 +172,31 @@ def followGoodList()
 end
 
 def unfollowPurgeList()
-  arrayPurgeList = Array.new()
-  File.open(PURGELIST_FILENAME).each do |line|
-    arrayPurgeList << line.chomp()
+
+  if (File.file?(PURGELIST_FILENAME))
+
+    arrayPurgeList = Array.new()
+
+    File.open(PURGELIST_FILENAME).each do |line|
+      arrayPurgeList << line.chomp()
+    end
+
+    arrayPurgeList.each { |user_id|
+
+      puts "Unfollowing #{user_id}"
+
+      response = $access_token.request(:post, "https://api.twitter.com/1.1/friendships/destroy.json?user_id=#{user_id}")
+      puts response
+      iSleep = SLEEP_MIN + rand(SLEEP_MAX - SLEEP_MIN)
+      puts "Sleeping for #{iSleep} seconds"
+      sleep(iSleep)
+    }
+
+    archivePurgeList()
+
+  else
+      puts "No #{PURGELIST_FILENAME} to purge"
   end
-
-  arrayPurgeList.each { |user_id|
-
-    puts "Unfollowing #{user_id}"
-
-    response = $access_token.request(:post, "https://api.twitter.com/1.1/friendships/destroy.json?user_id=#{user_id}")
-    puts response
-    iSleep = SLEEP_MIN + rand(SLEEP_MAX - SLEEP_MIN)
-    puts "Sleeping for #{iSleep} seconds"
-    sleep(iSleep)
-  }
-
-  archivePurgeList()
 
 end
 
@@ -554,6 +562,8 @@ def makePurgeListDefault()
   oldestFileName = nil
   oldestFileDate = nil
 
+  doPurge = true
+
   strFileNames.each { | strFile |
     if (strFile.start_with?("followlist.txt")) 
       iStart = "followlist.txt".size
@@ -577,13 +587,16 @@ def makePurgeListDefault()
       puts "iDaysOld: #{iDaysOld}"
       makePurgeList("./archives/" + oldestFileName)
     else
-      puts "No file to process"
+      doPurge = false
     end
   else
-      puts "No file to process"
+      doPurge = false
 
   end
 
+  if (!doPurge)
+      puts "No follow archive file to process"
+  end
 
 end
 
