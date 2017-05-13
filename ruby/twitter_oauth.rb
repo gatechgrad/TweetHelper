@@ -34,6 +34,8 @@ GOOD_LIST_MAX = 500
 FOLLOW_LIST_MAX = 250 
 USERS_PER_FRIEND_QUERY = 100 
 
+MAX_PEOPLE_TO_FOLLOW = 250
+
 GOODLIST_FILENAME = "goodlist.txt"
 FOLLOWLIST_FILENAME = "followlist.txt"
 PURGELIST_FILENAME = "purgelist.txt"
@@ -129,24 +131,31 @@ def followUser(username)
 end
 
 def followFollowList()
-  arrayFollowList = Array.new()
-  File.open(FOLLOWLIST_FILENAME).each do |line|
-    arrayFollowList << line.chomp()
-  end
+  if (File.file?(FOLLOWLIST_FILENAME)) 
 
-  arrayFollowList.each { |userid|
+    arrayFollowList = Array.new()
 
-    puts "Following #{userid}"
+  
+    File.open(FOLLOWLIST_FILENAME).each do |line|
+      arrayFollowList << line.chomp()
+    end
 
-    response = $access_token.request(:post, "https://api.twitter.com/1.1/friendships/create.json?user_id=#{userid}&follow=true")
-    puts response
-    iSleep = 61 
+    arrayFollowList.each { |userid|
+
+      puts "Following #{userid}"
+
+      response = $access_token.request(:post, "https://api.twitter.com/1.1/friendships/create.json?user_id=#{userid}&follow=true")
+      puts response
+      iSleep = 61 
 #    iSleep = SLEEP_MIN + rand(SLEEP_MAX - SLEEP_MIN)
-    puts "Sleeping for #{iSleep} seconds"
-    sleep(iSleep)
-  }
+      puts "Sleeping for #{iSleep} seconds"
+      sleep(iSleep)
+    }
 
-  archiveFollowList()
+    archiveFollowList()
+  else
+    puts "No #{FOLLOWLIST_FILENAME}.  Use MAKEFOLLOWLIST first"
+  end
 
 end
 
@@ -304,6 +313,23 @@ def makeGoodList(username, cursorID)
 end
 
 def makeFollowList()
+  iFollowListCount = 0
+
+  if (!File.file?(GOODLIST_FILENAME)) 
+    puts "No #{GOODLIST_FILENAME}.  Create one using MAKEGOODLIST <user>"
+  end
+
+  while (File.file?(GOODLIST_FILENAME) && File.size?(GOODLIST_FILENAME) && iFollowListCount < MAX_PEOPLE_TO_FOLLOW)
+    iToFollowCount = MAX_PEOPLE_TO_FOLLOW - iFollowListCount
+    iFollowListCount += addToFollowList(iToFollowCount)
+
+  end
+
+end
+
+def addToFollowList(iAddMax)
+  iAdded = 0
+
   arrUsersList = Array.new 
 
   i = 0
@@ -318,7 +344,12 @@ def makeFollowList()
     end
   end
 
-  FileUtils.mv(GOODLIST_FILENAME + ".tmp", GOODLIST_FILENAME)
+  if (File.size(GOODLIST_FILENAME + ".tmp") > 0) 
+    FileUtils.mv(GOODLIST_FILENAME + ".tmp", GOODLIST_FILENAME)
+  else 
+    FileUtils.rm(GOODLIST_FILENAME + ".tmp")
+    FileUtils.rm(GOODLIST_FILENAME)
+  end
 
   strUsersList = arrUsersList.map { |str| str }.join(",")
   puts "Checking: " + strUsersList
@@ -330,23 +361,37 @@ def makeFollowList()
     puts connections
 
     connections.each { |connection|
-      doFollow = TRUE
+      if (iAdded < iAddMax) 
 
-      connection["connections"].each { |value|
-        puts "Value: #{value}"
-        if (value == "following" || value == "followed_by")
-          doFollow = FALSE
+        doFollow = TRUE
+
+        connection["connections"].each { |value|
+          puts "Value: #{value}"
+          if (value == "following" || value == "followed_by")
+            doFollow = FALSE
+          end
+        }
+
+        if (doFollow)
+          f = File.open(FOLLOWLIST_FILENAME, "a+")
+          f.puts connection["id"]
+          f.close()
+          iAdded += 1
         end
-      }
 
-      if (doFollow)
-        f = File.open(FOLLOWLIST_FILENAME, "a+")
-        f.puts connection["id"]
-        f.close()
+      else 
+        puts "Putting #{connection["id"]} back in #{GOODLIST_FILENAME}" 
+          f = File.open(GOODLIST_FILENAME, "a+")
+          f.puts connection["id"]
+          f.close()
+
       end
  
     }
 
+    puts "Added #{iAdded} to #{FOLLOWLIST_FILENAME}"
+
+    return iAdded
 
 end
 
