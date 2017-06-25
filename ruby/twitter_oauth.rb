@@ -29,12 +29,15 @@ FOLLOWERS_LIMIT = 50
 FOLLOW_RATIO_LIMIT = 200
 LAST_ACTION_LIMIT = 5
 
-USERS_PER_CURSOR_PAGE = 5000
+USERS_PER_CURSOR_PAGE = 5002
 GOOD_LIST_MAX = 500 
 FOLLOW_LIST_MAX = 250 
 USERS_PER_FRIEND_QUERY = 100 
 
 MAX_PEOPLE_TO_FOLLOW = 250
+
+TWITTER_FOLLOW_LIMIT = 5000
+TWITTER_RATIO_LIMIT = 1.1 
 
 GOODLIST_FILENAME = "goodlist.txt"
 FOLLOWLIST_FILENAME = "followlist.txt"
@@ -139,6 +142,10 @@ def followFollowList()
     File.open(FOLLOWLIST_FILENAME).each do |line|
       arrayFollowList << line.chomp()
     end
+
+    if (!checkFollowerRatio(arrayFollowList.size))
+      exit 
+    end 
 
     arrayFollowList.each { |userid|
 
@@ -495,27 +502,65 @@ def isGoodPerson(user_id)
 #    $iSleepInterval = REQUEST_SLEEP_INTERVAL 
   end 
 
-=begin
-  if (isGood)
-    response1 = $access_token.request(:get, "https://api.twitter.com/1.1/friendships/lookup.json?user_id=#{user_id}")
-    connections = JSON.parse(response1.body)
-    puts connections
-    connections[0]["connections"].each { |value|
-      puts "Value: #{value}"
-      if (value == "following" || value == "followed_by")
-        isGood = FALSE
-        puts "Already following"
-      end
-    } 
-      
-
-  end
-=end
-
   puts "*** #{u_screen_name} isGoodUser? #{isGood}" 
   
   return isGood 
 end
+
+
+
+def checkFollowerRatio(iToAdd) 
+  checkPassed = true
+
+  response = $access_token.request(:get, "https://api.twitter.com/1.1/account/verify_credentials.json")
+  credentials = JSON.parse(response.body)
+
+  puts "name: #{credentials['name']}"
+  puts "id: #{credentials['id']}"
+  id = credentials['id']
+#  puts "UserID: #{id}" 
+
+  response = $access_token.request(:get, "https://api.twitter.com/1.1/users/lookup.json?user_id=#{id}")
+  user = JSON.parse(response.body)
+
+  if (user.class == Hash && !user["errors"].nil?)
+    puts "ERROR getting user #{user_id}"
+    return false
+  end
+
+  u_screen_name = user[0]["screen_name"]
+  puts "Handle: #{u_screen_name}"
+  
+  u_followers = user[0]["followers_count"]
+  puts "Followers: #{u_followers}"
+  if (u_followers < FOLLOWERS_LIMIT) 
+    puts "Follower Count failed (#{u_followers} < #{FOLLOWERS_LIMIT})"
+  end
+  
+  u_following = user[0]["friends_count"]
+  puts "Following: #{u_following}"
+
+
+  if (u_following + iToAdd > TWITTER_FOLLOW_LIMIT)
+    puts "#{u_following + iToAdd} - Exceeded follow limit; Using ratio check method"
+
+    puts "Checking: #{u_following} + #{iToAdd} / #{u_followers} >= #{TWITTER_RATIO_LIMIT}"
+    iRatio = (u_following.to_f + iToAdd.to_f) / u_followers.to_f
+    puts "#{iRatio}"
+    if ((iRatio) >= TWITTER_RATIO_LIMIT)
+      puts "Following too many people; Unfollow some people first"
+      checkPassed = false
+    else
+      puts "Follow limit okay"
+    end
+
+  end
+
+
+  return checkPassed
+end
+
+
 
 def isNotFollowing(user_list)
     response1 = $access_token.request(:get, "https://api.twitter.com/1.1/friendships/lookup.json?user_id=#{user_id}")
@@ -878,6 +923,12 @@ def main()
     end
   elsif (ARGV[0].upcase == "DELETEDMS") 
       deleteDirectMessages()
+  elsif (ARGV[0].upcase == "CHECKFOLLOWERRATIO") 
+    if (ARGV.count == 2)
+      checkFollowerRatio(ARGV[1].to_i)
+    else 
+      checkFollowerRatio(0) 
+    end
   else 
     puts "Invalid option"
     displayUsage()
