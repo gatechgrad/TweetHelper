@@ -146,6 +146,17 @@ def followFollowList()
 
       response = $access_token.request(:post, "https://api.twitter.com/1.1/friendships/create.json?user_id=#{userid}&follow=true")
       puts response
+
+      #check response
+      result = JSON.parse(response.body)
+      if (result.class == Hash && !result["errors"].nil?)
+        puts "ERROR with #{userid}.  Reached follow limit?"
+        #Should clean up the followlist.txt file and archive here 
+        puts "Need to manually archive followlist.txt with everyone who has been followed;  Put everyone else back in the followlist.txt file;  Unfollow some people and try again later"
+        exit
+      end
+
+
       iSleep = 61 
 #    iSleep = SLEEP_MIN + rand(SLEEP_MAX - SLEEP_MIN)
       puts "Sleeping for #{iSleep} seconds"
