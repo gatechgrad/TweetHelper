@@ -47,10 +47,14 @@ NOTFOLLOWBACKIDS_FILENAME = "data/notfollowback_ids.txt"
 NOTFOLLOWBACKHTML_FILENAME = "data/notfollowback.html"
 FOLLOW_QUERY_COUNT = 200
 
+BADWORDS_FILENAME = "conf/badwords.txt"
+NAUGHTYPEOPLE_FILENAME = "data/naughtypeople.html"
+GOODLANGUAGE_FILENAME = "conf/goodlanguage.txt"
+
 GOODLIST_FILENAME = "data/goodlist.txt"
 FOLLOWLIST_FILENAME = "data/followlist.txt"
 PURGELIST_FILENAME = "data/purgelist.txt"
-WHITELIST_FILENAME = "data/whitelist.txt"
+WHITELIST_FILENAME = "conf/whitelist.txt"
 CHECKED_FILENAME = "data/checked.txt"
 
 TOKENS_FILENAME = "conf/tokens.txt"
@@ -1251,6 +1255,121 @@ def getUsernamesByID(user_ids)
 end
 
 
+def findNaughtyPeople(username) 
+  badWordsArray = Array.new
+  fBadWords = File.open(BADWORDS_FILENAME)
+  fBadWords.each_line { | line |
+    badWordsArray << line.chomp.upcase
+  }
+  fBadWords.close
+
+  goodLanguageArray = Array.new
+  fGoodLanguage = File.open(GOODLANGUAGE_FILENAME)
+  fGoodLanguage.each_line { | line |
+    goodLanguageArray << line.chomp.upcase
+  }
+  fGoodLanguage.close
+  
+
+  f = File.open(NAUGHTYPEOPLE_FILENAME, "w")
+
+  iNextCursor = -1
+  keepLooping = true;
+
+  f.puts "<html><head>"
+  f.puts "<meta charset=\"utf-8\">"
+  f.puts "</head><body>"
+  f.puts "<h1>Naughty People</h1>"
+
+  while (keepLooping)
+
+    #Check ratelimit
+    response = $access_token.request(:get, "https://api.twitter.com/1.1/application/rate_limit_status.json?resources=friends")
+    puts response
+    limits = JSON.parse(response.body)
+    puts "RATELIMIT"
+    puts response.body
+    iQueriesLeft = limits["resources"]["friends"]["/friends/list"]["remaining"]
+    iQueryReset = limits["resources"]["friends"]["/friends/list"]["reset"]
+    puts "iQueriesLeft: #{iQueriesLeft}, iQueryReset: #{iQueryReset} #{Time.at(iQueryReset)}"
+    iSecondsUntilReset = Time.at(iQueryReset) - Time.new
+    puts "Seconds until reset: #{iSecondsUntilReset}"
+
+    if (iQueriesLeft > 0) 
+
+      #Getting friends (people followed, not necessarily follows back)
+      strRequest ="https://api.twitter.com/1.1/friends/list.json?screen_name=#{username}&count=#{FOLLOW_QUERY_COUNT}&cursor=#{iNextCursor}"
+
+      puts "Request: #{strRequest}"
+
+      response = $access_token.request(:get, strRequest) 
+      puts response
+
+      result = JSON.parse(response.body)
+
+      if (result["users"].nil?) 
+        puts "Something went wrong, response is nil"
+
+
+        puts "#{response.body}"
+        f.close
+
+        return;
+      end
+
+#    puts response.body
+
+      result["users"].each { | user |
+        user_id = user["id"]
+        user_name = user["name"]
+        user_screen_name = user["screen_name"]
+        user_bio = user["description"].upcase
+        user_lang = user["lang"].upcase
+    
+        strLink = ""
+        isNaughtyPerson = false
+        badWordsArray.each { | strBadWord |
+          if (user_bio.include?(strBadWord))
+            isNaughtyPerson = true
+            strLink += "<span style=\"color: red\">BAD WORD (#{strBadWord})</span>"
+          end
+        }
+
+        if (!goodLanguageArray.include?(user_lang))
+          isNaughtyPerson = true
+          strLink += "<span style=\"color: blue\">LANGUAGE: #{user_lang}</span>"
+        end
+
+        if (isNaughtyPerson) 
+          strUser = "id: #{user_id}, screen_name: #{user_screen_name}, bio: #{user_bio}, user_lang: #{user_lang}"
+          puts strUser
+          strLink = "<a href=\"https://twitter.com/#{user_screen_name}\">#{user_name} (#{user_screen_name})</a>" + strLink + "<br>"
+          f.puts "#{strLink}"
+        end
+        
+      }
+
+      iNextCursor = result["next_cursor"] 
+      puts "Next Cursor: #{iNextCursor}"
+      if (iNextCursor == 0) 
+        keepLooping = false
+      end
+      sleep 10
+    else
+      iCushon = 10
+      sleep iSecondsUntilReset + iCushon 
+
+    end 
+  end #while(keepLooping)
+
+  f.puts "</body></html>"
+
+  f.close
+
+
+
+end
+
 
 def displayUsage() 
     puts "Usage: ruby twitter_oauth.rb <command> <options>"
@@ -1368,6 +1487,10 @@ def main()
     end
   elsif (ARGV[0].upcase == "NOTFOLLOWBACK") 
       getNotFollowBack();
+  elsif (ARGV[0].upcase == "NAUGHTYPEOPLE") 
+    if (ARGV.count == 2)
+      findNaughtyPeople(ARGV[1]);
+    end
   else 
     puts "Invalid option"
     displayUsage()
