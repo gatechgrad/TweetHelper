@@ -39,13 +39,24 @@ MAX_PEOPLE_TO_FOLLOW = 250
 TWITTER_FOLLOW_LIMIT = 5000
 TWITTER_RATIO_LIMIT = 1.1 
 
-GOODLIST_FILENAME = "goodlist.txt"
-FOLLOWLIST_FILENAME = "followlist.txt"
-PURGELIST_FILENAME = "purgelist.txt"
-WHITELIST_FILENAME = "whitelist.txt"
+ALLFOLLOWERS_FILENAME = "data/allfollowers.txt"
+ALLFOLLOWING_FILENAME = "data/allfollowing.txt"
+ALLFOLLOWERIDS_FILENAME = "data/allfollower_ids.txt"
+ALLFOLLOWINGIDS_FILENAME = "data/allfollowing_ids.txt"
+NOTFOLLOWBACKIDS_FILENAME = "data/notfollowback_ids.txt"
+NOTFOLLOWBACKHTML_FILENAME = "data/notfollowback.html"
+FOLLOW_QUERY_COUNT = 200
+
+GOODLIST_FILENAME = "data/goodlist.txt"
+FOLLOWLIST_FILENAME = "data/followlist.txt"
+PURGELIST_FILENAME = "data/purgelist.txt"
+WHITELIST_FILENAME = "data/whitelist.txt"
+CHECKED_FILENAME = "data/checked.txt"
+
+TOKENS_FILENAME = "conf/tokens.txt"
 
 def readTokens()
-  f = File.new("tokens.txt", "r")
+  f = File.new(TOKENS_FILENAME, "r")
   $consumer_key = f.gets().chomp()
   $consumer_secret = f.gets().chomp()
   $oauth_token = f.gets().chomp()
@@ -248,7 +259,7 @@ def archiveFollowList()
 end
 
 def archivePurgeList()
-  strArchiveFile = "purgelist" + Time.now.strftime("%Y%m%d_%H%M%S") + ".txt"
+  strArchiveFile = "data/purgelist" + Time.now.strftime("%Y%m%d_%H%M%S") + ".txt"
   puts "Moving #{PURGELIST_FILENAME} to #{strArchiveFile}"
   if (!File.directory?("./archives/purged"))
     FileUtils.mkdir "./archives/purged"
@@ -276,8 +287,8 @@ def makeGoodList(username, cursorID)
 
   #read the checked.txt file into an array
   arrayChecked = Array.new
-  if File.file?("checked.txt")
-    File.open("checked.txt").each do |line|
+  if File.file?(CHECKED_FILENAME)
+    File.open(CHECKED_FILENAME).each do |line|
     arrayChecked << line.chomp().to_i
     end
   end
@@ -312,7 +323,7 @@ def makeGoodList(username, cursorID)
       end
 
 #Not in the checked file, so add them
-      fChecked = File.open("checked.txt", "a+")
+      fChecked = File.open(CHECKED_FILENAME, "a+")
       fChecked.puts "#{id}" 
       fChecked.close
 
@@ -666,8 +677,8 @@ def makePurgeListDefault()
   doPurge = true
 
   strFileNames.each { | strFile |
-    if (strFile.start_with?("followlist.txt")) 
-      iStart = "followlist.txt".size
+    if (strFile.start_with?(FOLLOWLIST_FILENAME)) 
+      iStart = FOLLOWLIST_FILENAME.size
       iLength = "YYYYMMDD_hhmmss".size 
       dateFollow = DateTime.strptime(strFile[iStart, iLength], "%Y%m%d_%H%M%S") 
       puts "File: #{strFile} date: #{dateFollow}"
@@ -742,7 +753,7 @@ def makePurgeList(strFile)
   if (!File.directory?("./archives/purged"))
     FileUtils.mkdir "./archives/purged"
   end
-  strArchiveFile = "goodlistpurged" + Time.now.strftime("%Y%m%d_%H%M%S") + ".txt"
+  strArchiveFile = "data/goodlistpurged" + Time.now.strftime("%Y%m%d_%H%M%S") + ".txt"
   FileUtils.mv(strFile, "./archives/purged/" + strArchiveFile) 
 
 end
@@ -834,6 +845,413 @@ def displayUserURLByID(user_id)
 end
 
 
+
+def getAllFollowers(username) 
+  f = File.open(ALLFOLLOWERS_FILENAME, "w")
+
+  iCursor = -1
+  iNextCursor = -1
+  keepLooping = true;
+
+  while (keepLooping)
+
+    #Check ratelimit
+    response = $access_token.request(:get, "https://api.twitter.com/1.1/application/rate_limit_status.json?resources=followers")
+    puts response
+    limits = JSON.parse(response.body)
+    puts "RATELIMIT"
+    puts response.body
+    iQueriesLeft = limits["resources"]["followers"]["/followers/list"]["remaining"]
+    iQueryReset = limits["resources"]["followers"]["/followers/list"]["reset"]
+    puts "iQueriesLeft: #{iQueriesLeft}, iQueryReset: #{iQueryReset} #{Time.at(iQueryReset)}"
+    iSecondsUntilReset = Time.at(iQueryReset) - Time.new
+    puts "Seconds until reset: #{iSecondsUntilReset}"
+
+    if (iQueriesLeft > 0) 
+
+      #Getting followers
+      strRequest ="https://api.twitter.com/1.1/followers/list.json?screen_name=#{username}&count=#{FOLLOW_QUERY_COUNT}&cursor=#{iNextCursor}"
+
+      puts "Request: #{strRequest}"
+
+      response = $access_token.request(:get, strRequest) 
+      puts response
+
+      result = JSON.parse(response.body)
+
+      if (result["users"].nil?) 
+        puts "Something went wrong, response is nil"
+
+
+        puts "#{response.body}"
+        f.close
+
+        return;
+      end
+
+#    puts response.body
+
+      result["users"].each { | user |
+        user_id = user["id"]
+        user_screen_name = user["screen_name"]
+        user_following = user["following"]
+        strUser = "id: #{user_id}, screen_name: #{user_screen_name}, following: #{user_following}"
+        puts strUser
+        f.puts "#{strUser}"
+      }
+
+      iNextCursor = result["next_cursor"] 
+      puts "Next Cursor: #{iNextCursor}"
+      if (iNextCursor == 0) 
+        keepLooping = false
+      end
+      sleep 10
+    else
+      iCushon = 10
+      sleep iSecondsUntilReset + iCushon 
+
+    end 
+  end #while(keepLooping)
+
+  f.close
+
+end
+
+
+def getAllFollowing(username) 
+  f = File.open(ALLFOLLOWING_FILENAME, "w")
+
+  iNextCursor = -1
+  keepLooping = true;
+
+  while (keepLooping)
+
+    #Check ratelimit
+    response = $access_token.request(:get, "https://api.twitter.com/1.1/application/rate_limit_status.json?resources=friends")
+    puts response
+    limits = JSON.parse(response.body)
+    puts "RATELIMIT"
+    puts response.body
+    iQueriesLeft = limits["resources"]["friends"]["/friends/list"]["remaining"]
+    iQueryReset = limits["resources"]["friends"]["/friends/list"]["reset"]
+    puts "iQueriesLeft: #{iQueriesLeft}, iQueryReset: #{iQueryReset} #{Time.at(iQueryReset)}"
+    iSecondsUntilReset = Time.at(iQueryReset) - Time.new
+    puts "Seconds until reset: #{iSecondsUntilReset}"
+
+    if (iQueriesLeft > 0) 
+
+      #Getting friends (people followed, not necessarily follows back)
+      strRequest ="https://api.twitter.com/1.1/friends/list.json?screen_name=#{username}&count=#{FOLLOW_QUERY_COUNT}&cursor=#{iNextCursor}"
+
+      puts "Request: #{strRequest}"
+
+      response = $access_token.request(:get, strRequest) 
+      puts response
+
+      result = JSON.parse(response.body)
+
+      if (result["users"].nil?) 
+        puts "Something went wrong, response is nil"
+
+
+        puts "#{response.body}"
+        f.close
+
+        return;
+      end
+
+#    puts response.body
+
+      result["users"].each { | user |
+        user_id = user["id"]
+        user_screen_name = user["screen_name"]
+        user_following = user["following"] #this should always be true
+        strUser = "id: #{user_id}, screen_name: #{user_screen_name}, following: #{user_following}"
+        puts strUser
+        strUser = "id: #{user_id}, screen_name: #{user_screen_name}"
+        f.puts "#{strUser}"
+      }
+
+      iNextCursor = result["next_cursor"] 
+      puts "Next Cursor: #{iNextCursor}"
+      if (iNextCursor == 0) 
+        keepLooping = false
+      end
+      sleep 10
+    else
+      iCushon = 10
+      sleep iSecondsUntilReset + iCushon 
+
+    end 
+  end #while(keepLooping)
+
+  f.close
+
+end
+
+
+def getAllFollowerIDs(username) 
+  f = File.open(ALLFOLLOWERIDS_FILENAME, "w")
+
+  iNextCursor = -1
+  keepLooping = true;
+
+  while (keepLooping)
+
+    #Check ratelimit
+    response = $access_token.request(:get, "https://api.twitter.com/1.1/application/rate_limit_status.json?resources=followers")
+    puts response
+    limits = JSON.parse(response.body)
+    puts "RATELIMIT"
+    puts response.body
+    iQueriesLeft = limits["resources"]["followers"]["/followers/ids"]["remaining"]
+    iQueryReset = limits["resources"]["followers"]["/followers/ids"]["reset"]
+    puts "iQueriesLeft: #{iQueriesLeft}, iQueryReset: #{iQueryReset} #{Time.at(iQueryReset)}"
+    iSecondsUntilReset = Time.at(iQueryReset) - Time.new
+    puts "Seconds until reset: #{iSecondsUntilReset}"
+
+    if (iQueriesLeft > 0) 
+
+      #Getting followers
+      strRequest ="https://api.twitter.com/1.1/followers/ids.json?screen_name=#{username}&cursor=#{iNextCursor}"
+
+      puts "Request: #{strRequest}"
+
+      response = $access_token.request(:get, strRequest) 
+      puts response
+
+      result = JSON.parse(response.body)
+
+      if (result["ids"].nil?) 
+        puts "Something went wrong, response is nil"
+
+
+        puts "#{response.body}"
+        f.close
+
+        return;
+      end
+
+#    puts response.body
+
+      result["ids"].each { | id |
+        strID = "#{id}"
+        puts strID
+        f.puts "#{strID}"
+      }
+
+      iNextCursor = result["next_cursor"] 
+      puts "Next Cursor: #{iNextCursor}"
+      if (iNextCursor == 0) 
+        keepLooping = false
+      end
+      sleep 10
+    else
+      iCushon = 10
+      sleep iSecondsUntilReset + iCushon 
+
+    end 
+  end #while(keepLooping)
+
+  f.close
+
+end
+
+
+
+def getAllFollowingIDs(username) 
+  f = File.open(ALLFOLLOWINGIDS_FILENAME, "w")
+
+  iNextCursor = -1
+  keepLooping = true;
+
+  while (keepLooping)
+
+    #Check ratelimit
+    response = $access_token.request(:get, "https://api.twitter.com/1.1/application/rate_limit_status.json?resources=friends")
+    puts response
+    limits = JSON.parse(response.body)
+    puts "RATELIMIT"
+    puts response.body
+    iQueriesLeft = limits["resources"]["friends"]["/friends/ids"]["remaining"]
+    iQueryReset = limits["resources"]["friends"]["/friends/ids"]["reset"]
+    puts "iQueriesLeft: #{iQueriesLeft}, iQueryReset: #{iQueryReset} #{Time.at(iQueryReset)}"
+    iSecondsUntilReset = Time.at(iQueryReset) - Time.new
+    puts "Seconds until reset: #{iSecondsUntilReset}"
+
+    if (iQueriesLeft > 0) 
+
+      #Getting friends (people followed, not necessarily follows back)
+      strRequest ="https://api.twitter.com/1.1/friends/ids.json?screen_name=#{username}&cursor=#{iNextCursor}"
+
+      puts "Request: #{strRequest}"
+
+      response = $access_token.request(:get, strRequest) 
+      puts response
+
+      result = JSON.parse(response.body)
+
+      if (result["ids"].nil?) 
+        puts "Something went wrong, response is nil"
+
+
+        puts "#{response.body}"
+        f.close
+
+        return;
+      end
+
+#    puts response.body
+
+      result["ids"].each { | id |
+        strID = "#{id}"
+        puts strID
+        f.puts "#{strID}"
+      }
+
+      iNextCursor = result["next_cursor"] 
+      puts "Next Cursor: #{iNextCursor}"
+      if (iNextCursor == 0) 
+        keepLooping = false
+      end
+      sleep 10
+    else
+      iCushon = 10
+      sleep iSecondsUntilReset + iCushon 
+
+    end 
+  end #while(keepLooping)
+
+  f.close
+
+end
+
+
+
+def getNotFollowBack()
+
+  if (!File.exist?(ALLFOLLOWERIDS_FILENAME) || !File.exist?(ALLFOLLOWINGIDS_FILENAME))
+    puts "Missing file.  Please run the following first"
+    puts "  tweethelper.sh ALLFOLLOWERIDS <username>"
+    puts "  tweethelper.sh ALLFOLLOWINGIDS <username>"
+    reutrn
+  end
+
+#Read the two files into arrays
+  allFollowingArray = Array.new()
+  fAllFollowing = File.open(ALLFOLLOWINGIDS_FILENAME)
+  fAllFollowing.each_line { |line|
+    allFollowingArray << line.chomp()
+  }
+  fAllFollowing.close()
+
+  allFollowerArray = Array.new()
+  fAllFollowers = File.open(ALLFOLLOWERIDS_FILENAME)
+  fAllFollowers.each_line {|line|
+    allFollowerArray << line.chomp()
+  }
+  fAllFollowers.close()
+
+#Loop through the following array, and find which ones aren't followers
+  f = File.open(NOTFOLLOWBACKIDS_FILENAME, "w")
+
+  allFollowingArray.each { | following_id |
+    if (!allFollowerArray.include?(following_id))
+      strID = "#{following_id}"
+      puts strID
+      f.puts strID
+    end
+  }
+  f.close
+
+  makeNotFollowBackHTML()
+
+end
+
+
+
+
+def makeNotFollowBackHTML() 
+  fNotFollowBackIDs = File.open(NOTFOLLOWBACKIDS_FILENAME)
+
+  usernameArray = Array.new
+
+  i = 0
+  strUserIDList = ""
+
+  fNotFollowBackIDs.each_line { | line |
+    strUserIDList += line.chomp 
+
+    i += 1
+
+    if (i >= 100) 
+      puts strUserIDList
+ 
+#      usernameArray << getUsernamesByID(strUserIDList)
+      getUsernamesByID(strUserIDList).each { | user |
+        usernameArray << user
+      } 
+      
+      i = 0
+      strUserIDList = ""
+    else
+  
+      strUserIDList += ","
+     end
+
+  }
+
+  if (strUserIDList != "") 
+      getUsernamesByID(strUserIDList).each { | user |
+        usernameArray << user
+      } 
+  end
+
+
+
+  fNotFollowBackHTML = File.open(NOTFOLLOWBACKHTML_FILENAME, "w")
+
+  fNotFollowBackHTML.puts "<html><head>"
+  fNotFollowBackHTML.puts "<meta charset=\"utf-8\">"
+  fNotFollowBackHTML.puts "</head><body>"
+
+  usernameArray.each { | user |
+    strLink = "<a href=\"https://twitter.com/#{user[0]}\">#{user[1]} (#{user[0]})</a><br>"
+    puts strLink 
+    fNotFollowBackHTML.puts strLink
+  }
+
+
+  fNotFollowBackHTML.puts "</body></html>"
+
+  fNotFollowBackHTML.close
+  fNotFollowBackIDs.close
+end
+
+
+def getUsernamesByID(user_ids)
+      usernameArray = Array.new
+
+      #Get usernames for everyone in user_ids comma separated list
+      strRequest ="https://api.twitter.com/1.1/users/lookup.json?user_id=#{user_ids}"
+
+      puts "Request: #{strRequest}"
+
+      response = $access_token.request(:post, strRequest)
+      puts response
+
+      results = JSON.parse(response.body)
+#      puts response.body
+ 
+      results.each { | user |
+        usernameArray << [user["screen_name"], user["name"]]
+      }
+      return usernameArray
+
+end
+
+
+
 def displayUsage() 
     puts "Usage: ruby twitter_oauth.rb <command> <options>"
     puts "Commands:" 
@@ -853,6 +1271,9 @@ def displayUsage()
     puts "unfollowpurgelist - unfollows all IDs in #{PURGELIST_FILENAME} file"
     puts "purgeandunfollow - purges from the oldest archive file and unfollows them"
     puts "userurl <user_id> - displays the Twitter URL for the specified user_id"
+    puts "allfollowerids <username> - generates file with ids of everyone following the specified user"
+    puts "allfollowingids <username> - generates file with ids of everyone followed by the specified user"
+    puts "notfollowback - for everyone in the allfollowingids file, checks to see if there is a value in the allfollowerids file.  If not, user_id gets written to the notfollowback file.  HTML file is generated with links to all notfollowback users"
 end
 
 
@@ -929,6 +1350,24 @@ def main()
     else 
       checkFollowerRatio(0) 
     end
+  elsif (ARGV[0].upcase == "ALLFOLLOWERS") 
+    if (ARGV.count == 2)
+      getAllFollowers(ARGV[1])
+    end
+  elsif (ARGV[0].upcase == "ALLFOLLOWING") 
+    if (ARGV.count == 2)
+      getAllFollowing(ARGV[1])
+    end
+  elsif (ARGV[0].upcase == "ALLFOLLOWERIDS") 
+    if (ARGV.count == 2)
+      getAllFollowerIDs(ARGV[1])
+    end
+  elsif (ARGV[0].upcase == "ALLFOLLOWINGIDS") 
+    if (ARGV.count == 2)
+      getAllFollowingIDs(ARGV[1])
+    end
+  elsif (ARGV[0].upcase == "NOTFOLLOWBACK") 
+      getNotFollowBack();
   else 
     puts "Invalid option"
     displayUsage()
