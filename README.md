@@ -45,7 +45,7 @@ ruby twitter_oauth.rb followfollowlist
 
 #Five days later, remove everyone who didn't follow back (replace DATE with the date of the archived file)
 
-ruby twitter_oauth.rb makepurgelist archives/followlist<DATE>.txt
+ruby twitter_oauth.rb makepurgelist #now detects the oldest purgelist file
 
 ruby twitter_oauth.rb unfollowpurgelist
 
