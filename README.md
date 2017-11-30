@@ -37,6 +37,8 @@ Typical usage:
 
 ruby twitter_oauth.rb makegoodlist GeorgiaTech
 
+#The following two lines can be run multiple times until the goodlist is empty
+
 ruby twitter_oauth.rb makefollowlist 
 
 ruby twitter_oauth.rb followfollowlist
