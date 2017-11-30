@@ -1,7 +1,6 @@
 2017 Levi D. Smith
 
-WARNING:  Mass following Twitter accounts can get your Twitter app and Twitter account suspended or banned.  Use with caution and only if you know what you're doing!
-
+WARNING:  Mass following and unfollowingTwitter accounts can get your Twitter app and Twitter account suspended or banned.  Use with caution and only if you know what you're doing!
 
 Create text file in the conf directory called tokens.txt and put in the following values on separate lines:
 
@@ -29,9 +28,9 @@ twitter_oauth.rb:50:in `[]': no implicit conversion of String into Integer (Type
 
 Suggested guidelines: No more than 250 follows or unfollows a day.  Users can't be unfollowed for 5 days.  Those are probably good rules to follow to prevent from being suspended.
 
+===========================
 
-
-Typical usage:
+Typical usage (all of the commands assume that you are in the ruby directory):
 
 #Follow everyone who is following @GeorgiaTech
 
@@ -43,15 +42,16 @@ ruby twitter_oauth.rb makefollowlist
 
 ruby twitter_oauth.rb followfollowlist
 
+===========================
 
 
-#Five days later, remove everyone who didn't follow back (replace DATE with the date of the archived file)
+#Five days later, remove everyone who didn't follow back
 
 ruby twitter_oauth.rb makepurgelist #now detects the oldest purgelist file
 
 ruby twitter_oauth.rb unfollowpurgelist
 
-
+===========================
 
 Who isn't following back usage:
 
@@ -61,4 +61,17 @@ ruby twitter_oauth.rb allfollowingids <username>
 
 ruby twitter_oauth.rb notfollowback 
 
-Then open ruby/data/notfollowback.html in a web browser
+Then open data/notfollowback.html in a web browser
+
+
+===========================
+
+Naughty People usage
+
+Put naughty words on separate lines in conf/badwords.txt
+
+Put language codes in conf/goodlanguage.txt
+
+ruby twitter_oauth.rb naughtypeople <username>
+
+Then open data/naughtypeople.html in a web browser
