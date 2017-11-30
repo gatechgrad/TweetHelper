@@ -1,3 +1,4 @@
+```
 2017 Levi D. Smith
 
 WARNING:  Mass following and unfollowingTwitter accounts can get your Twitter app and Twitter account suspended or banned.  Use with caution and only if you know what you're doing!
@@ -75,3 +76,4 @@ Put language codes in conf/goodlanguage.txt
 ruby twitter_oauth.rb naughtypeople <username>
 
 Then open data/naughtypeople.html in a web browser
+```
