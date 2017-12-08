@@ -1390,10 +1390,11 @@ def displayUsage()
     puts "unfollowpurgelist - unfollows all IDs in #{PURGELIST_FILENAME} file"
     puts "purgeandunfollow - purges from the oldest archive file and unfollows them"
     puts "userurl <user_id> - displays the Twitter URL for the specified user_id"
-    puts "allfollowerids <username> - generates file with ids of everyone following the specified user"
-    puts "allfollowingids <username> - generates file with ids of everyone followed by the specified user"
-    puts "notfollowback - for everyone in the allfollowingids file, checks to see if there is a value in the allfollowerids file.  If not, user_id gets written to the notfollowback file.  HTML file is generated with links to all notfollowback users"
+#    puts "allfollowerids <username> - generates file with ids of everyone following the specified user"
+#    puts "allfollowingids <username> - generates file with ids of everyone followed by the specified user"
+#    puts "notfollowback - for everyone in the allfollowingids file, checks to see if there is a value in the allfollowerids file.  If not, user_id gets written to the notfollowback file.  HTML file is generated with links to all notfollowback users"
 end
+    puts "notfollowback <username> - generates files of ids for accounts following and followed by the username, then compares those two files to determine who is not following back and generates HTML file with the results"
 
 
 def main()
@@ -1485,8 +1486,16 @@ def main()
     if (ARGV.count == 2)
       getAllFollowingIDs(ARGV[1])
     end
+  elsif (ARGV[0].upcase == "NOTFOLLOWBACKCOMPAREONLY") 
+      getNotFollowBack()
   elsif (ARGV[0].upcase == "NOTFOLLOWBACK") 
-      getNotFollowBack();
+    if (ARGV.count == 2)
+      getAllFollowerIDs(ARGV[1])
+      getAllFollowingIDs(ARGV[1])
+      getNotFollowBack()
+      puts "Open #{NOTFOLLOWBACKHTML_FILENAME} in a web browser"
+    end
+      
   elsif (ARGV[0].upcase == "NAUGHTYPEOPLE") 
     if (ARGV.count == 2)
       findNaughtyPeople(ARGV[1]);
