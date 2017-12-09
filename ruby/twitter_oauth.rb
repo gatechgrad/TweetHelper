@@ -253,7 +253,7 @@ def archiveGoodList()
 end
 
 def archiveFollowList()
-  strArchiveFile = "#{FOLLOWLIST_FILENAME}" + Time.now.strftime("%Y%m%d_%H%M%S") + ".txt"
+  strArchiveFile = "followlist" + Time.now.strftime("%Y%m%d_%H%M%S") + ".txt"
   puts "Moving #{FOLLOWLIST_FILENAME} to #{strArchiveFile}"
   if (!File.directory?("./archives"))
     FileUtils.mkdir "./archives"
@@ -1500,6 +1500,8 @@ def main()
     if (ARGV.count == 2)
       findNaughtyPeople(ARGV[1]);
     end
+  elsif (ARGV[0].upcase == "ARCHIVEFOLLOWLIST") 
+    archiveFollowList()
   else 
     puts "Invalid option"
     displayUsage()
