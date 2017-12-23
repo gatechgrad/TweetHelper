@@ -39,6 +39,8 @@ MAX_PEOPLE_TO_FOLLOW = 250
 TWITTER_FOLLOW_LIMIT = 5000
 TWITTER_RATIO_LIMIT = 1.1 
 
+INFINITY = 9999
+
 ALLFOLLOWERS_FILENAME = "data/allfollowers.txt"
 ALLFOLLOWING_FILENAME = "data/allfollowing.txt"
 ALLFOLLOWERIDS_FILENAME = "data/allfollower_ids.txt"
@@ -52,6 +54,8 @@ NAUGHTYPEOPLE_FILENAME = "data/naughtypeople.html"
 GOODLANGUAGE_FILENAME = "conf/goodlanguage.txt"
 
 GOODLIST_FILENAME = "data/goodlist.txt"
+FOLLOWLIST_ARCHIVE_PREFIX = "data/followlist"
+FOLLOWLIST_ARCHIVE_SUFFIX = ".txt"
 FOLLOWLIST_FILENAME = "data/followlist.txt"
 PURGELIST_FILENAME = "data/purgelist.txt"
 WHITELIST_FILENAME = "conf/whitelist.txt"
@@ -253,12 +257,12 @@ def archiveGoodList()
 end
 
 def archiveFollowList()
-  strArchiveFile = "followlist" + Time.now.strftime("%Y%m%d_%H%M%S") + ".txt"
+  strArchiveFile = FOLLOWLIST_ARCHIVE_PREFIX + Time.now.strftime("%Y%m%d_%H%M%S") + FOLLOWLIST_ARCHIVE_SUFFIX 
   puts "Moving #{FOLLOWLIST_FILENAME} to #{strArchiveFile}"
   if (!File.directory?("./archives"))
     FileUtils.mkdir "./archives"
   end
-  FileUtils.mv(FOLLOWLIST_FILENAME, "./archives/" + strArchiveFile) 
+  FileUtils.mv(FOLLOWLIST_FILENAME, strArchiveFile) 
 
 end
 
@@ -487,6 +491,8 @@ def isGoodPerson(user_id)
     if (u_following_ratio > FOLLOW_RATIO_LIMIT)
       puts "Follower Ratio failed (#{u_following_ratio} > #{FOLLOW_RATIO_LIMIT})"
     end
+  else
+    u_following_ratio = INFINITY
   end
 
 
@@ -674,6 +680,7 @@ end
 
 
 def makePurgeListDefault() 
+  file_prefix = "followlist"
   strFileNames = Dir.entries("./archives")
   oldestFileName = nil
   oldestFileDate = nil
@@ -681,8 +688,10 @@ def makePurgeListDefault()
   doPurge = true
 
   strFileNames.each { | strFile |
-    if (strFile.start_with?(FOLLOWLIST_FILENAME)) 
-      iStart = FOLLOWLIST_FILENAME.size
+    if (strFile.start_with?(file_prefix)) 
+#      iStart = FOLLOWLIST_FILENAME.size
+#Need to fix this to use FOLLOWLIST_ARCHIVE_PREFIX instead, but will have to rework how the Dir.entries are returned
+      iStart = file_prefix.size
       iLength = "YYYYMMDD_hhmmss".size 
       dateFollow = DateTime.strptime(strFile[iStart, iLength], "%Y%m%d_%H%M%S") 
       puts "File: #{strFile} date: #{dateFollow}"
@@ -757,7 +766,7 @@ def makePurgeList(strFile)
   if (!File.directory?("./archives/purged"))
     FileUtils.mkdir "./archives/purged"
   end
-  strArchiveFile = "data/goodlistpurged" + Time.now.strftime("%Y%m%d_%H%M%S") + ".txt"
+  strArchiveFile = "goodlistpurged" + Time.now.strftime("%Y%m%d_%H%M%S") + ".txt"
   FileUtils.mv(strFile, "./archives/purged/" + strArchiveFile) 
 
 end
@@ -1366,6 +1375,7 @@ def findNaughtyPeople(username)
 
   f.close
 
+  puts "Open #{Dir.pwd}#{NAUGHTYPEOPLE_FILENAME} in a web browser"
 
 
 end
@@ -1390,11 +1400,13 @@ def displayUsage()
     puts "unfollowpurgelist - unfollows all IDs in #{PURGELIST_FILENAME} file"
     puts "purgeandunfollow - purges from the oldest archive file and unfollows them"
     puts "userurl <user_id> - displays the Twitter URL for the specified user_id"
-#    puts "allfollowerids <username> - generates file with ids of everyone following the specified user"
-#    puts "allfollowingids <username> - generates file with ids of everyone followed by the specified user"
-#    puts "notfollowback - for everyone in the allfollowingids file, checks to see if there is a value in the allfollowerids file.  If not, user_id gets written to the notfollowback file.  HTML file is generated with links to all notfollowback users"
+    puts "allfollowerids <username> - generates file with ids of everyone following the specified user"
+    puts "allfollowingids <username> - generates file with ids of everyone followed by the specified user"
+    puts "notfollowback - for everyone in the allfollowingids file, checks to see if there is a value in the allfollowerids file.  If not, user_id gets written to the notfollowback file.  HTML file is generated with links to all notfollowback users"
+    puts "naughtypeople - generates an HTML file with everyone who has #{BADWORDS_FILENAME} in their profile"
+
+
 end
-    puts "notfollowback <username> - generates files of ids for accounts following and followed by the username, then compares those two files to determine who is not following back and generates HTML file with the results"
 
 
 def main()
@@ -1473,18 +1485,26 @@ def main()
   elsif (ARGV[0].upcase == "ALLFOLLOWERS") 
     if (ARGV.count == 2)
       getAllFollowers(ARGV[1])
+    else
+      puts "Usage: ALLFOLLOWERS <username>"
     end
   elsif (ARGV[0].upcase == "ALLFOLLOWING") 
     if (ARGV.count == 2)
       getAllFollowing(ARGV[1])
+    else
+      puts "Usage: ALLFOLLOWING <username>"
     end
   elsif (ARGV[0].upcase == "ALLFOLLOWERIDS") 
     if (ARGV.count == 2)
       getAllFollowerIDs(ARGV[1])
+    else
+      puts "Usage: ALLFOLLOWERIDS <username>"
     end
   elsif (ARGV[0].upcase == "ALLFOLLOWINGIDS") 
     if (ARGV.count == 2)
       getAllFollowingIDs(ARGV[1])
+    else
+      puts "Usage: ALLFOLLOWINGIDS <username>"
     end
   elsif (ARGV[0].upcase == "NOTFOLLOWBACKCOMPAREONLY") 
       getNotFollowBack()
@@ -1494,11 +1514,16 @@ def main()
       getAllFollowingIDs(ARGV[1])
       getNotFollowBack()
       puts "Open #{NOTFOLLOWBACKHTML_FILENAME} in a web browser"
+    else 
+      puts "Usage: NOTFOLLOWBACK <username>"
+
     end
       
   elsif (ARGV[0].upcase == "NAUGHTYPEOPLE") 
     if (ARGV.count == 2)
       findNaughtyPeople(ARGV[1]);
+    else
+      puts "Usage: NAUGHTYPEOPLE <username>"
     end
   elsif (ARGV[0].upcase == "ARCHIVEFOLLOWLIST") 
     archiveFollowList()
