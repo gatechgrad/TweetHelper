@@ -267,7 +267,7 @@ def archiveFollowList()
 end
 
 def archivePurgeList()
-  strArchiveFile = "data/purgelist" + Time.now.strftime("%Y%m%d_%H%M%S") + ".txt"
+  strArchiveFile = "purgelist" + Time.now.strftime("%Y%m%d_%H%M%S") + ".txt"
   puts "Moving #{PURGELIST_FILENAME} to #{strArchiveFile}"
   if (!File.directory?("./archives/purged"))
     FileUtils.mkdir "./archives/purged"
