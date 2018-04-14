@@ -1143,6 +1143,16 @@ end
 
 def getNotFollowBack()
 
+  whiteListIDs = getWhiteListIDs()
+#  puts "White LIst IDS"
+#  puts whiteListIDs
+#  puts "----------"
+
+#  if (whiteListIDs.include?("35338217".to_i))
+#    puts "found it"
+#  end
+
+
   if (!File.exist?(ALLFOLLOWERIDS_FILENAME) || !File.exist?(ALLFOLLOWINGIDS_FILENAME))
     puts "Missing file.  Please run the following first"
     puts "  tweethelper.sh ALLFOLLOWERIDS <username>"
@@ -1169,7 +1179,7 @@ def getNotFollowBack()
   f = File.open(NOTFOLLOWBACKIDS_FILENAME, "w")
 
   allFollowingArray.each { | following_id |
-    if (!allFollowerArray.include?(following_id))
+    if (!allFollowerArray.include?(following_id) && !whiteListIDs.include?(following_id.to_i))
       strID = "#{following_id}"
       puts strID
       f.puts strID
@@ -1181,7 +1191,29 @@ def getNotFollowBack()
 
 end
 
+def getWhiteListIDs()
+  whiteListArray = Array.new()
+  f = File.open(WHITELIST_FILENAME)
+  f.each_line {|line|
+    whiteListArray << line.upcase().chomp()
+  }
+  f.close()
 
+#only works for up to 100
+  puts whiteListArray.join(',')
+  response = $access_token.request(:get, "https://api.twitter.com/1.1/users/lookup.json?screen_name=#{whiteListArray.join(',')}")
+
+  whiteListIDs = Array.new()
+
+  results = JSON.parse(response.body)
+
+  results.each { | user |
+      whiteListIDs << user["id"]
+  }
+  return whiteListIDs 
+
+
+end
 
 
 def makeNotFollowBackHTML() 
@@ -1510,8 +1542,8 @@ def main()
       getNotFollowBack()
   elsif (ARGV[0].upcase == "NOTFOLLOWBACK") 
     if (ARGV.count == 2)
-      getAllFollowerIDs(ARGV[1])
-      getAllFollowingIDs(ARGV[1])
+#      getAllFollowerIDs(ARGV[1])
+#      getAllFollowingIDs(ARGV[1])
       getNotFollowBack()
       puts "Open #{NOTFOLLOWBACKHTML_FILENAME} in a web browser"
     else 
