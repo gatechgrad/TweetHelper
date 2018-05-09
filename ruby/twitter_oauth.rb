@@ -1407,7 +1407,7 @@ def findNaughtyPeople(username)
 
   f.close
 
-  puts "Open #{Dir.pwd}#{NAUGHTYPEOPLE_FILENAME} in a web browser"
+  puts "Open #{Dir.pwd}/#{NAUGHTYPEOPLE_FILENAME} in a web browser"
 
 
 end
@@ -1434,7 +1434,7 @@ def displayUsage()
     puts "userurl <user_id> - displays the Twitter URL for the specified user_id"
     puts "allfollowerids <username> - generates file with ids of everyone following the specified user"
     puts "allfollowingids <username> - generates file with ids of everyone followed by the specified user"
-    puts "notfollowback - for everyone in the allfollowingids file, checks to see if there is a value in the allfollowerids file.  If not, user_id gets written to the notfollowback file.  HTML file is generated with links to all notfollowback users"
+    puts "notfollowback <username> - for everyone in the allfollowingids file, checks to see if there is a value in the allfollowerids file.  If not, user_id gets written to the notfollowback file.  HTML file is generated with links to all notfollowback users"
     puts "naughtypeople - generates an HTML file with everyone who has #{BADWORDS_FILENAME} in their profile"
 
 
@@ -1545,7 +1545,7 @@ def main()
 #      getAllFollowerIDs(ARGV[1])
 #      getAllFollowingIDs(ARGV[1])
       getNotFollowBack()
-      puts "Open #{NOTFOLLOWBACKHTML_FILENAME} in a web browser"
+      puts "Open #{Dir.pwd}/#{NOTFOLLOWBACKHTML_FILENAME} in a web browser"
     else 
       puts "Usage: NOTFOLLOWBACK <username>"
 
