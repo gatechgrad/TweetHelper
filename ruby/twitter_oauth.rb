@@ -1542,8 +1542,8 @@ def main()
       getNotFollowBack()
   elsif (ARGV[0].upcase == "NOTFOLLOWBACK") 
     if (ARGV.count == 2)
-#      getAllFollowerIDs(ARGV[1])
-#      getAllFollowingIDs(ARGV[1])
+      getAllFollowerIDs(ARGV[1])
+      getAllFollowingIDs(ARGV[1])
       getNotFollowBack()
       puts "Open #{Dir.pwd}/#{NOTFOLLOWBACKHTML_FILENAME} in a web browser"
     else 
