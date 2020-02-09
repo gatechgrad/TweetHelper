@@ -22,6 +22,20 @@ Now at https://apps.twitter.com
 
 twitter_oauth.rb:50:in `[]': no implicit conversion of String into Integer (TypeError)
 
+===========================
+
+Ruby oauth gem must be installed!
+$ sudo gem install oauth
+Fetching: oauth-0.5.4.gem (100%)
+Successfully installed oauth-0.5.4
+Parsing documentation for oauth-0.5.4
+Installing ri documentation for oauth-0.5.4
+Done installing documentation for oauth after 1 seconds
+1 gem installed
+
+===========================
+
+
 Suggested guidelines: No more than 250 follows or unfollows a day.  Users can't be unfollowed for 5 days.  Those are probably good rules to follow to prevent from being suspended.
 
 ===========================

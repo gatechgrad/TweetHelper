@@ -1434,7 +1434,8 @@ def displayUsage()
     puts "userurl <user_id> - displays the Twitter URL for the specified user_id"
     puts "allfollowerids <username> - generates file with ids of everyone following the specified user"
     puts "allfollowingids <username> - generates file with ids of everyone followed by the specified user"
-    puts "notfollowback <username> - for everyone in the allfollowingids file, checks to see if there is a value in the allfollowerids file.  If not, user_id gets written to the notfollowback file.  HTML file is generated with links to all notfollowback users"
+    puts "notfollowbackcompareonly <username> - for everyone in the allfollowingids file, checks to see if there is a value in the allfollowerids file.  If not, user_id gets written to the notfollowback file.  HTML file is generated with links to all notfollowback users"
+    puts "notfollowback <username> - generates the data files and returns the HTML file with people not following back "
     puts "naughtypeople - generates an HTML file with everyone who has #{BADWORDS_FILENAME} in their profile"
 
 

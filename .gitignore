@@ -1,4 +1,7 @@
-ruby/tokens.txt
+ruby/conf/tokens.txt
+ruby/conf/badwords.txt
+ruby/conf/goodlanguage.txt
+ruby/conf/whitelist.txt
 ruby/goodlist*.txt
 ruby/followlist.txt
 ruby/test
@@ -6,3 +9,6 @@ ruby/checked.txt
 ruby/archives/*
 ruby/purgelist.txt
 ruby/whitelist.txt
+ruby/data/*.txt
+ruby/data/*.html
+ruby/error.txt
