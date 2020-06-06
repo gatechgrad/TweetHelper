@@ -13,6 +13,8 @@ oauth_token_secret
 I did this to keep me from checking in source code with these keys.  Put ruby/conf/tokens.txt in the .gitignore file.
 
 YOU MUST CREATE YOUR OWN TWITTER APP ON THE TWITTER DEVELOPER SITE!  There is plenty of documentation available on how to setup a Twitter app.
+https://developer.twitter.com/en/apps
+
 
 If you see something like below followed by a stack trace, the Consumer Key or Consumer Secret values are wrong.  You get these from https://dev.twitter.com > My apps > select app > Keys and Access Tokens tab.
 
