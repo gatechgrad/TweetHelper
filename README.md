@@ -54,6 +54,7 @@ ruby twitter_oauth.rb followfollowlist
 ===========================
 
 #Days later, remove everyone who didn't follow back
+#Update - recommend using the notfollowback option instead
 ruby twitter_oauth.rb makepurgelist #now detects the oldest purgelist file
 ruby twitter_oauth.rb unfollowpurgelist
 
@@ -63,6 +64,9 @@ Who isn't following back usage:
 
 ruby twitter_oauth.rb allfollowerids <username>
 ruby twitter_oauth.rb allfollowingids <username>
+
+#Update - notfollowback now automatically runs the allfollowerids and allfollowingids commands,
+#so those no longer need to be entered
 ruby twitter_oauth.rb notfollowback 
 
 Then open data/notfollowback.html in a web browser

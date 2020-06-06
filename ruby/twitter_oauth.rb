@@ -1261,7 +1261,7 @@ def makeNotFollowBackHTML()
   fNotFollowBackHTML.puts "</head><body>"
 
   usernameArray.each { | user |
-    strLink = "<a href=\"https://twitter.com/#{user[0]}\">#{user[1]} (#{user[0]})</a><br>"
+    strLink = "<a target=\"_blank\" href=\"https://twitter.com/#{user[0]}\">#{user[1]} (#{user[0]})</a><br>"
     puts strLink 
     fNotFollowBackHTML.puts strLink
   }
@@ -1412,6 +1412,15 @@ def findNaughtyPeople(username)
 
 end
 
+def makeDataDirectory
+
+	if (!Dir.exist?('./data'))
+		puts "./data directory not found, creating it"
+		FileUtils.mkdir('./data')
+	end
+
+end
+
 
 def displayUsage() 
     puts "Usage: ruby twitter_oauth.rb <command> <options>"
@@ -1446,6 +1455,7 @@ def main()
   readTokens()
  
   prepare_access_token($oauth_token, $oauth_token_secret)
+  makeDataDirectory()
 
   if (ARGV.count == 0) 
     displayUsage()
@@ -1547,6 +1557,13 @@ def main()
       getAllFollowingIDs(ARGV[1])
       getNotFollowBack()
       puts "Open #{Dir.pwd}/#{NOTFOLLOWBACKHTML_FILENAME} in a web browser"
+	  
+	  if (ENV['OS'] == 'Windows_NT')
+		strCommand = "start firefox -url file:///#{Dir.pwd}/#{NOTFOLLOWBACKHTML_FILENAME}"
+		puts strCommand
+		system(strCommand)
+	  end
+	  
     else 
       puts "Usage: NOTFOLLOWBACK <username>"
 
