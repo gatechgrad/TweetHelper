@@ -1365,7 +1365,8 @@ def findNaughtyPeople(username)
         user_name = user["name"]
         user_screen_name = user["screen_name"]
         user_bio = user["description"].upcase
-        user_lang = user["lang"].upcase
+#        user_lang = user["lang"].upcase
+        user_lang = ""
     
         strLink = ""
         isNaughtyPerson = false
@@ -1376,15 +1377,15 @@ def findNaughtyPeople(username)
           end
         }
 
-        if (!goodLanguageArray.include?(user_lang))
-          isNaughtyPerson = true
-          strLink += "<span style=\"color: blue\">LANGUAGE: #{user_lang}</span>"
-        end
+#        if (!goodLanguageArray.include?(user_lang))
+#          isNaughtyPerson = true
+#          strLink += "<span style=\"color: blue\">LANGUAGE: #{user_lang}</span>"
+#        end
 
         if (isNaughtyPerson) 
           strUser = "id: #{user_id}, screen_name: #{user_screen_name}, bio: #{user_bio}, user_lang: #{user_lang}"
           puts strUser
-          strLink = "<a href=\"https://twitter.com/#{user_screen_name}\">#{user_name} (#{user_screen_name})</a>" + strLink + "<br>"
+          strLink = "<a target=\"_blank\" href=\"https://twitter.com/#{user_screen_name}\">#{user_name} (#{user_screen_name})</a>" + strLink + "<br>"
           f.puts "#{strLink}"
         end
         
@@ -1408,6 +1409,12 @@ def findNaughtyPeople(username)
   f.close
 
   puts "Open #{Dir.pwd}/#{NAUGHTYPEOPLE_FILENAME} in a web browser"
+  if (ENV['OS'] == 'Windows_NT')
+	strCommand = "start firefox -url file:///#{Dir.pwd}/#{NAUGHTYPEOPLE_FILENAME}"
+	puts strCommand
+	system(strCommand)
+  end
+
 
 
 end

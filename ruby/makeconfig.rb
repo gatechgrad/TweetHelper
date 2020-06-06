@@ -19,7 +19,7 @@ class MakeConfig
 			puts '1) make token file'
 			puts '2) make white list'
 			puts '3) make badwords file'
-			puts '4) make good languages file'
+#			puts '4) make good languages file'
 			puts 'Q) quit'
 			
 			strInput = gets().strip.upcase
@@ -32,9 +32,9 @@ class MakeConfig
 				makeWhiteList()
 			elsif (strInput[0] == '3')
 				makeBadWords()
-			elsif (strInput[0] == '4')
-				makeGoodLanguage()
-				end
+#			elsif (strInput[0] == '4')
+#				makeGoodLanguage()
+			end
 		
 		end
 
